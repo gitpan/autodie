@@ -1,0 +1,52 @@
+Fatal and autodie
+
+This distribution provides 'autodie', a lexical equivalent of
+'Fatal' for Perl 5.10.  The distribution also upgrades the Fatal
+module to contain better diagnostics and reporting.
+
+This distribution REQUIRES Perl 5.10 or later to run.
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc autodie
+    perldoc Fatal
+
+You can also look for information at:
+
+    RT, CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/autodie
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/autodie
+
+    Search CPAN
+        http://search.cpan.org/dist/autodie
+
+
+COPYRIGHT AND LICENCE
+
+Original module by Lionel Cons (CERN)
+
+Prototype updates by Ilya Zakharevich <ilya@math.ohio-state.edu>
+
+Lexical support and other modifications
+Copyright 2008 by Paul Fenwick <pjf@cpan.org>
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
