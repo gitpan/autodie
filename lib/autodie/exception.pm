@@ -1,18 +1,19 @@
 package autodie::exception;
-use 5.010;
+use 5.008;
 use strict;
 use warnings;
 use Carp qw(croak);
-use Hash::Util qw(fieldhashes);
+use Scalar::Util qw(refaddr);
 
 our $DEBUG = 0;
 
 use overload
-    '~~'  => "matches",
     q{""} => "stringify"
 ;
 
-our $VERSION = '1.10_03';
+use if ($] >= 5.010), overload => '~~'  => "matches";
+
+our $VERSION = '1.10_04';
 
 =head1 NAME
 
@@ -64,11 +65,11 @@ is called which may reset or alter C<$@>.
 
 =cut
 
-# autodie::exception objects are inside-out constructions,
-# using new 5.10 fieldhashes features.  They're based roughly
-# on Exception::Class. I'd use E::C, but it's non-core.
+# autodie::exception objects are inside-out objects.  They were
+# going to be based on fieldhashes, but that breaks things for 5.8.
+# Instead we do the work ourselves.
 
-fieldhashes \ my(
+my(
     %args_of,
     %file_of,
     %caller_of,
@@ -89,7 +90,7 @@ that died.
 
 =cut
 
-sub args        { return $args_of{        $_[0] } }
+sub args        { return $args_of{ refaddr $_[0] } }
 
 =head3 function
 
@@ -99,7 +100,7 @@ The subroutine (including package) that threw the exception.
 
 =cut
 
-sub function   { return $sub_of{   $_[0] } }
+sub function   { return $sub_of{ refaddr $_[0] } }
 
 =head3 file
 
@@ -110,7 +111,7 @@ C<MyTest.pm>).
 
 =cut
 
-sub file        { return $file_of{        $_[0] } }
+sub file        { return $file_of{ refaddr $_[0] } }
 
 =head3 package
 
@@ -120,7 +121,7 @@ The package from which the exceptional subroutine was called.
 
 =cut
 
-sub package     { return $package_of{     $_[0] } }
+sub package     { return $package_of{ refaddr $_[0] } }
 
 =head3 caller
 
@@ -130,7 +131,7 @@ The subroutine that I<called> the exceptional code.
 
 =cut
 
-sub caller      { return $caller_of{ $_[0] } }
+sub caller      { return $caller_of{ refaddr $_[0] } }
 
 =head2 line
 
@@ -140,7 +141,7 @@ The line in C<< $E->file >> where the exceptional code was called.
 
 =cut
 
-sub line        { return $line_of{        $_[0] } }
+sub line        { return $line_of{ refaddr $_[0] } }
 
 =head3 errno
 
@@ -158,7 +159,7 @@ set on failure.
 # TODO: Make errno part of a role.  It doesn't make sense for
 # everything.
 
-sub errno       { return $errno_of{       $_[0] } }
+sub errno       { return $errno_of{ refaddr $_[0] } }
 
 =head3 matches
 
@@ -192,30 +193,39 @@ C<CORE::open> subroutine does C<:file>, C<:io>, and C<:CORE>.
 
 =cut
 
-sub matches {
-    my ($this, $that) = @_;
+{
+    my (%cache);
 
-    state %cache;
-    state $tags;
+    sub matches {
+        my ($this, $that) = @_;
 
-    # XXX - Handle references
-    croak "UNIMPLEMENTED" if ref $that;
+        # XXX - Handle references
+        croak "UNIMPLEMENTED" if ref $that;
 
-    my $sub = $this->function;
+        my $sub = $this->function;
 
-    if ($DEBUG) {
-        my $sub2 = $this->function;
-        warn "Smart-matching $that against $sub / $sub2\n";
+        if ($DEBUG) {
+            my $sub2 = $this->function;
+            warn "Smart-matching $that against $sub / $sub2\n";
+        }
+
+        # Direct subname match.
+        return 1 if $that eq $sub;
+        return 1 if $that !~ /:/ and "CORE::$that" eq $sub;
+        return 0 if $that !~ /^:/;
+
+        # Cached match / check tags.
+        require Fatal;
+
+        if (exists $cache{$sub}{$that}) {
+            return $cache{$sub}{$that};
+        }
+
+        # This rather awful looking line checks to see if our sub is in the
+        # list of expanded tags, caches it, and returns the result.
+
+        return $cache{$sub}{$that} = grep { $_ eq $sub } @{ Fatal::_expand_tag($that) };
     }
-
-    # Direct subname match.
-    return 1 if $that eq $sub;
-    return 1 if $that !~ /:/ and "CORE::$that" eq $sub;
-    return 0 if $that !~ /^:/;
-
-    # Cached match / check tags.
-    require Fatal;
-    return $cache{$sub}{$that} //= (Fatal::_expand_tag($that) ~~ $sub);
 }
 
 =head2 Advanced methods
@@ -273,11 +283,11 @@ sub _format_open {
 
     local $! = $this->errno;
 
-    given($open_args[1]) {
-        when ('<')  { return "Can't open '$file' for reading: '$!'"    }
-        when ('>')  { return "Can't open '$file' for writing: '$!'"    }
-        when ('>>') { return "Can't open '$file' for appending: '$!'"  }
-    }
+    my $mode = $open_args[1];
+
+    if    ($mode eq '<')  { return "Can't open '$file' for reading: '$!'"    }
+    elsif ($mode eq '>')  { return "Can't open '$file' for writing: '$!'"    }
+    elsif ($mode eq '>>') { return "Can't open '$file' for appending: '$!'"  }
 
     # Default message (for pipes and odd things)
 
@@ -384,7 +394,7 @@ sub format_default {
 
     my $call        =  $this->function;
 
-    local $! = $errno_of{$this};
+    local $! = $this->errno;
 
     # TODO: This is probably a good idea for CORE, is it
     # a good idea for other subs?
@@ -452,20 +462,39 @@ sub _init {
 
     my ($package, $file, $line, $sub) = CORE::caller(2);
 
-    $package_of{    $this} = $package;
-    $file_of{       $this} = $file;
-    $line_of{       $this} = $line;
-    $caller_of{     $this} = $sub;
-    $package_of{    $this} = $package;
-    $errno_of{      $this} = $!;
+    my $id = refaddr $this;
 
-    $args_of{       $this} = $args{args}     || [];
-    $sub_of{  $this} = $args{function} or
+    $package_of{ $id} = $package;
+    $file_of{    $id} = $file;
+    $line_of{    $id} = $line;
+    $caller_of{  $id} = $sub;
+    $package_of{ $id} = $package;
+    $errno_of{   $id} = $!;
+
+    $args_of{    $id} = $args{args}     || [];
+    $sub_of{     $id} = $args{function} or
               croak("$class->new() called without function arg");
 
     return $this;
 
 }
+
+sub DESTROY {
+    my ($this) = @_;
+    my $id  = refaddr $this;
+
+    delete $package_of{ $id};
+    delete $file_of{    $id};
+    delete $line_of{    $id};
+    delete $caller_of{  $id};
+    delete $package_of{ $id};
+    delete $errno_of{   $id};
+    delete $args_of{    $id};
+    delete $sub_of{     $id};
+
+}
+
+# TODO : Write a CLONE method to support our inside-out design.
 
 1;
 

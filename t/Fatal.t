@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use feature qw(say);
 
 use constant NO_SUCH_FILE => "this_file_or_dir_had_better_not_exist_XYZZY";
 
@@ -42,7 +41,7 @@ like(
 eval { Fatal->import(qw(:lexical :void)) };
 like($@, qr{cannot be used with lexical}, ":void can't be used with :lexical");
 
-eval { Fatal->import(qw(foo bar :lexical)) };
+eval { Fatal->import(qw(open close :lexical)) };
 like($@, qr{:lexical must be used as first}, ":lexical must come first");
 
 {

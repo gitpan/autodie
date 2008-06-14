@@ -1,13 +1,12 @@
 package autodie::exception::system;
-use 5.010;
+use 5.008;
 use strict;
 use warnings;
 use base 'autodie::exception';
 use Carp qw(croak);
-use Hash::Util qw(fieldhashes);
 use Scalar::Util qw(refaddr);
 
-our $VERSION = $autodie::exception::VERSION;
+our $VERSION = '1.10_04';
 
 =head1 NAME
 
@@ -52,7 +51,7 @@ C<system> command.
 #
 # As the pod says, this code will change.
 
-fieldhashes \ my(
+my(
     %message_of,
 );
 
@@ -79,6 +78,14 @@ sub stringify {
 
     return $message_of{refaddr $this} . $this->add_file_and_line;
 
+}
+
+sub DESTROY {
+    my ($this) = @_;
+
+    delete $message_of{refaddr $this};
+
+    $this->SUPER::DESTROY;
 }
 
 1;

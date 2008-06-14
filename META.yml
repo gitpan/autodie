@@ -19,4 +19,4 @@ recommends:
   IPC::System::Simple: 0.12
 requires:
   perl: 5.10.0
-version: 1.10_03
+version: 1.10_04
