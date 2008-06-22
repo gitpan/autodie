@@ -13,7 +13,7 @@ use overload
 
 use if ($] >= 5.010), overload => '~~'  => "matches";
 
-our $VERSION = '1.10_05';
+our $VERSION = '1.10_06';
 
 =head1 NAME
 
@@ -133,7 +133,7 @@ The subroutine that I<called> the exceptional code.
 
 sub caller      { return $caller_of{ refaddr $_[0] } }
 
-=head2 line
+=head3 line
 
     my $line = $E->line;
 
@@ -499,6 +499,10 @@ sub DESTROY {
 1;
 
 __END__
+
+=head1 SEE ALSO
+
+L<autodie>, L<autodie::exception::system>
 
 =head1 LICENSE
 

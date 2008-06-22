@@ -2,8 +2,9 @@
 use strict;
 
 use constant NO_SUCH_FILE => 'this_file_had_so_better_not_be_here';
+use constant PERL58 => ($] < 5.010);
 
-use Test::More tests => 14;
+use Test::More tests => 18;
 
 {
 
@@ -37,8 +38,10 @@ use Test::More tests => 14;
 eval { open(my $fh, '<', NO_SUCH_FILE); };
 is($@,"","autodie open outside of lexical scope");
 
-eval { autodie->import(); };
-ok(! $@, "Bare autodie allowed");	# TODO: Test it turns on ':all'
+# eval { autodie->import(); };
+# ok(! $@, "Bare autodie allowed");   # TODO: Test it turns on ':all'
+
+ok(1, "Import test disabled");
 
 {
     use autodie qw(:io);
@@ -55,28 +58,42 @@ ok(! $@, "Bare autodie allowed");	# TODO: Test it turns on ':all'
 {
     package Testing_autodie;
 
+    use Test::More;
+
     use constant NO_SUCH_FILE => ::NO_SUCH_FILE();
 
     use Fatal qw(open);
 
     eval { open(my $fh, '<', NO_SUCH_FILE); };
-    ::like($@, qr{Can't open}, "Package fatal working");
 
-    use autodie qw(open);
-    ::ok(1,"use autodie allowed with Fatal");
+    like($@, qr{Can't open}, "Package fatal working");
+    is(ref $@,"","Old Fatal throws strings");
+
+    {
+        use autodie qw(open);
+
+        ok(1,"use autodie allowed with Fatal");
+
+        eval { open(my $fh, '<', NO_SUCH_FILE); };
+        like($@, qr{Can't open}, "autodie and Fatal works");
+        isa_ok($@, "autodie::exception"); # autodie throws real exceptions
+
+    }
 
     eval { open(my $fh, '<', NO_SUCH_FILE); };
-    ::like($@, qr{Can't open}, "autodie and Fatal works");
+
+    like($@, qr{Can't open}, "Package fatal working after autodie");
+    is(ref $@,"","Old Fatal throws strings after autodie");
 
     eval " no autodie qw(open); ";
 
-    ::ok($@,"no autodie on Fataled sub an error.");
+    ok($@,"no autodie on Fataled sub an error.");
 
     eval "
         no autodie qw(close);
         use Fatal 'close';
     ";
 
-    ::ok($@, "Using fatal after autodie is an error.");
+    ok($@, "Using fatal after autodie is an error.");
 }
 

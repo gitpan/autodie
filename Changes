@@ -1,5 +1,74 @@
 Revision history for Fatal
 
+1.10_06 Sun Jun 22 21:50:39 AUSEST 2008
+
+	* RELEASE CODENAME: "Chocolateboy", in thanks for his wonderful
+	  insights, and for letting me sound off way too many ideas
+	  about how things may be done.
+
+	* Fixed speeling errors in context.t, thanks to Stennie.
+
+	* Fixed minor pod errors and omissions.
+
+	* Fixed bug in recv.t which resulted in an incorrect number
+	  of skipped tests on systems using socketpair emulation.
+
+	* Fixed a bug that would cause unwanted interactions between
+	  autodie and autobox.  Thanks to chocolateboy. (5.8)
+
+	* Wrote a (failing) test case demonstrating that the
+	  autodie pragma could leak across files.  Many thanks to
+	  chocolateboy for bringing this to my attention.
+
+	* t/system.t checks to see if exotic system has been injured
+	  in the same package as 'use qutodie qw(system)'
+
+	* Calling filename reliably reported in 5.8 error messages
+	  and error objects.
+
+	* User subs can be made autodying under 5.8, but they leak
+	  over the entire package (which is very bad!)
+
+	* Context-checking tests split into package-scope tests and
+	  lexical scope tests.
+
+	* Lexical user-subs are disabled under Perl 5.8.  They were
+	  leaking everywhere and not being lexical at all.  Attempting
+	  to use a lexical user-sub under 5.8 now causes an error.
+
+	* Bugs found in interaction between autodie and Fatal in
+	  5.8.  When used together, we can't reliably replace a
+	  Fatalised sub with an autodying one, and then switch it
+	  back again at the end of block.
+
+	* Bugs described above fixed, thanks to ikegami!
+
+	* Overhauled _remove_lexical_subs, based on ikegami's
+	  input.  This routine would now be better named
+	  "_install_lexical_subs", since it can now both
+	  install and remove.
+
+	* Surpressed some warnings under 5.8 about uninitialised
+	  hints hashes.
+
+	* Added support for backwards compatible Fatal calls in
+	  5.8.  These are currently a little *too* backwards compatible,
+	  possessing the same bugs as the old Fatal (clobbering
+	  context).
+
+	* Improved caching of pre-generated subroutines.  We now
+	  cache the compiled subroutine, rather than the uncompiled
+	  code.
+
+	* Added more tests to ensure Fatal throws backcompat
+	  strings, whereas autodie throws exception objects.
+
+	* Support for lexical user-subs enabled, tested, and working
+	  in 5.8!
+
+	* Added resources to Makefile.PL / META.yml
+
+
 1.10_05 Sun Jun 15 15:46:38 AUSEST 2008
 	* Kludgy support for Perl 5.8 using Scope::Guard and dark
 	  and terrible magicks taken from namespace::clean.

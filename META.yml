@@ -15,9 +15,13 @@ no_index:
   directory:
     - inc
     - t
+    - examples
 recommends:
   IPC::System::Simple: 0.12
 requires:
   Scope::Guard: 0
   perl: 5.8.0
-version: 1.10_05
+resources:
+  blog: http://pjf.id.au/blog/toc.html?tag=autodie
+  repository: http://github.com/pfenwick/autodie/tree/master
+version: 1.10_06

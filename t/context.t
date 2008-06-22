@@ -3,12 +3,6 @@ use strict;
 
 use Test::More;
 
-BEGIN {
-    if ($] < 5.010) {
-	plan skip_all => "autodying user subs not yet supported under 5.8";
-    }
-}
-
 plan 'no_plan';
 
 sub list_return {
@@ -35,9 +29,13 @@ sub list_mirror {
 use Fatal qw(list_return);
 use Fatal qw(:void list_return2);
 
-my @list = list_return();
+TODO: {
+    local $TODO = "Fatal clobbers context, just like it always has.";
 
-is_deeply(\@list,[qw(foo bar baz)],'fatal sub works in list context');
+    my @list = list_return();
+
+    is_deeply(\@list,[qw(foo bar baz)],'fatal sub works in list context');
+}
 
 eval {
     my @line = list_return(1);  # Should die
@@ -62,60 +60,3 @@ eval {
 };
 
 ok($@,"void List return fatalised");
-
-### autodie clobbering tests ###
-
-eval {
-    list_mirror();
-};
-
-ok(! $@, "No autodie, no fatality");
-
-eval {
-    use autodie qw(list_mirror);
-    list_mirror();
-};
-
-ok($@, "Autodie fatality for empty return in void context");
-
-eval {
-    use autodie qw(list_mirror);
-    list_mirror(undef);
-};
-
-ok($@, "Autodie fatality for undef return in void context");
-
-eval {
-    use autodie qw(list_mirror);
-    my @list = list_mirror();
-};
-
-ok($@,"Autodie fality for empty list return");
-
-eval {
-    use autodie qw(list_mirror);
-    my @list = list_mirror(undef);
-};
-
-ok($@,"Autodie fality for undef list return");
-
-eval {
-    use autodie qw(list_mirror);
-    my @list = list_mirror("tada");
-};
-
-ok(! $@,"No Autodie fality for defined list return");
-
-eval {
-    use autodie qw(list_mirror);
-    my $single = list_mirror("tada");
-};
-
-ok(! $@,"No Autodie fality for defined scalar return");
-
-eval {
-    use autodie qw(list_mirror);
-    my $single = list_mirror(undef);
-};
-
-ok($@,"Autodie fality for undefined scalar return");

@@ -5,7 +5,7 @@ use warnings;
 
 use Fatal ();
 our @ISA = qw(Fatal);
-our $VERSION = "1.10_05";
+our $VERSION = "1.10_06";
 
 # When passing args to Fatal we want to keep the first arg
 # (our package) in place.  Hence the splice.
@@ -103,11 +103,8 @@ element.
 
 =head1 BUGS
 
-C<autodie> only works on Perl 5.10.  We'd like it to be able to
-work on Perl 5.8.
-
-Currently, autodying C<system> returns only a string, not a real
-exception object.  This will change before the full release.
+Plenty!  See L<http://github.com/pfenwick/autodie/tree/master/TODO>
+for a selection of what's remaining to be fixed.
 
 A bare autodie will change from meaning C<:all> to C<:default>
 before the final release.

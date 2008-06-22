@@ -43,8 +43,12 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
+# Don't allow lexical user subs under 5.8.  They don't get properly
+# lexicalised.
+use constant ALLOW_LEXICAL_USER_SUBS => PERL58 ? 0 : 1;
+
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = "1.10_05";
+our $VERSION = "1.10_06";
 
 our $Debug ||= 0;
 
@@ -155,7 +159,7 @@ sub import {
     # NB: we're using while/shift rather than foreach, since
     # we'll be modifying the array as we walk through it.
 
-    my @made_fatal;
+    my %made_fatal;
 
     while (my $func = shift @fatalise_these) {
 
@@ -196,13 +200,14 @@ sub import {
             # We're not being used in a confusing way, so make
             # the sub fatal.
 
-            $class->_make_fatal($func, $pkg, $void, $lexical);
+            my $sub_ref = $class->_make_fatal($func, $pkg, $void, $lexical);
 
             # If we're making lexical changes, we need to arrange
             # for them to be cleaned at the end of our scope, so
             # record them here.
 
-            push(@made_fatal,$func) if PERL58 and $lexical;
+            $made_fatal{$func} = $sub_ref if PERL58 and $lexical;
+
         }
     }
 
@@ -210,16 +215,21 @@ sub import {
 
         # Dark magic to have autodie work under 5.8
         # Copied from namespace::clean, that copied it from
-        # autodie, that found it on an ancient scroll written
-        # in blood.  Honestly, I have no idea how it works.
+        # autobox, that found it on an ancient scroll written
+        # in blood.
 
-        $^H |= 0x120000;
+        # This magic bit causes %^H to be lexically scoped.
+        # TODO - Apparently this *can* leak across file boundries,
+        # and needs to be investigated.  Chocolateboy's 'autobox'
+        # uses a workaround to detect this.
+
+        $^H |= 0x020000;
 
         # Our package guard gets invoked when we leave our lexical
         # scope.
 
         push(@ { $^H{$PACKAGE_GUARD} }, Scope::Guard->new(sub {
-            $class->_remove_lexical_subs($pkg, @made_fatal);
+            $class->_remove_lexical_subs($pkg, \%made_fatal);
         }));
     }
 
@@ -227,38 +237,54 @@ sub import {
 
 }
 
-# The code here is lifted from namespace::clean,
+# The code here is originally lifted from namespace::clean,
 # by Robert "phaylon" Sedlacek.
+#
+# It's been redesigned after feedback from ikegami on perlmonks.
+# See http://perlmonks.org/?node_id=693338
+#
+# This code would now be better called _install_lexical_subs
+# since it's now primarily used for installing, even though it
+# can delete as well.
 
 sub _remove_lexical_subs {
-    my ($class, $pkg, @subs) = @_;
+    my ($class, $pkg, $subs_to_reinstate) = @_;
 
-    foreach my $sub (@subs) {
+    # Many thanks to ikegami for this rather wonderful
+    # symbol resolving code.
 
-        no strict;
-        no warnings;
+    my $pkg_sym = "${pkg}::";
+    # foreach my $path (split /::/, $pkg) {
+    #    $pkg_sym = $pkg_sym->{"${path}::"};
+    # }
+
+    while(my ($sub_name, $sub_ref) = each %$subs_to_reinstate) {
+
+        my $full_path = $pkg_sym.$sub_name;
 
         # Copy symbols across to temp area.
-        local *__tmp = *{ ${ "${pkg}::" }{ $sub } };
+
+        no strict 'refs';
+
+        local *__tmp = *{ $full_path };
 
         # Nuke the old glob.
-        delete ${ "${pkg}::" }{ $sub };
+        { no strict; delete $pkg_sym->{$sub_name}; }
 
         # Copy innocent bystanders back.
 
-        # XXX - We're not copying back subs that used to
-        # be there (if we redefined them).  This is a
-        # major bug, as it means autodie can only work
-        # with core subs.
-        #
-        # Luckily, this should be easy to fix.  Just
-        # cache what the old subs were, and replace them.
-
         foreach my $slot (qw( SCALAR ARRAY HASH IO FORMAT ) ) {
             next unless defined *__tmp{ $slot };
-            *{ "${pkg}::$sub" } = *__tmp{ $slot };
+            *{ $full_path } = *__tmp{ $slot };
         }
-    };
+
+        # Put back the old sub (if there was one).
+
+        if ($sub_ref) {
+            no strict;
+            *{ $pkg_sym . $sub_name } = $sub_ref;
+        }
+    }
 
     return;
 }
@@ -311,7 +337,7 @@ sub unimport {
             # function at the end.
 
             if (PERL58) {
-                $class->_remove_lexical_subs($pkg,$symbol);
+                $class->_remove_lexical_subs($pkg,{ $symbol => undef });
             }
 
             # Fiddle the appropriate bits to say that this
@@ -320,8 +346,26 @@ sub unimport {
             # since that may happen in a later invocation.
 
             my $index = _get_sub_index($sub);
-            vec($^H{$PACKAGE},    $index,1) = 0;
-            vec($^H{$NO_PACKAGE}, $index,1) = 1;
+
+            {
+                # XXX - This shouldn't need warnings removed in
+                # 5.8.  In fact, I think we shouldn't need this code
+                # *at all*, but removing it causes the tests that
+                # say that using Fatal and no autodie together is
+                # naughty.
+
+                # XXX - These may be happening from import() being
+                # called at *RUN-TIME* under 5.8.  The whole
+                # calling import at run-time needs to be addressed.
+
+                # In 5.10, this works fine without the 'no warnings'.
+
+                no warnings 'uninitialized';
+
+                vec($^H{$PACKAGE},    $index,1) = 0;
+                vec($^H{$NO_PACKAGE}, $index,1) = 1;
+
+            }
         }
     } else {
 
@@ -428,8 +472,7 @@ sub write_invocation {
         shift @argv;
 
         if (PERL58) {
-            # XXX - Kludge - For lexical (plus maybe void) semantics under 5.8
-            return one_invocation($core,$call,$name,$void,$sub,0,@argv);
+            return one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
         }
 
         my $out = qq[
@@ -448,6 +491,7 @@ sub write_invocation {
             # Default: non-Fatal semantics
             return $call(].join(', ',@argv).qq[);
         ];
+
         return $out;
 
     } else {
@@ -456,12 +500,12 @@ sub write_invocation {
         while (@argvs) {
             @argv = @{shift @argvs};
             $n = shift @argv;
+
             push @out, "${else}if (\@_ == $n) {\n";
             $else = "\t} els";
 
             if (PERL58) {
-                # XXX - Kludge - For lexical (plus maybe void) semantics under 5.8
-                push @out, one_invocation($core,$call,$name,$void,$sub,0,@argv);
+                push @out, one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
                 next;
             }
 
@@ -483,20 +527,16 @@ sub write_invocation {
             ];
         }
         push @out, <<EOC;
-        }
-        die "Internal error: $name(\@_): Do not expect to get ", scalar \@_, " arguments";
+            }
+            die "Internal error: $name(\@_): Do not expect to get ", scalar \@_, " arguments";
 EOC
+
         return join '', @out;
     }
 }
 
 sub one_invocation {
     my ($core, $call, $name, $void, $sub, $back_compat, @argv) = @_;
-
-    # XXX - Kludge back-compat on for :void in 5.8
-    if (PERL58 and $void) {
-        $back_compat = 1;
-    }
 
     # If someone is calling us directly (a child class perhaps?) then
     # they could try to mix void without enabling backwards
@@ -527,11 +567,11 @@ sub one_invocation {
         local $" = ', ';
 
         if ($void) {
-            return qq/(defined wantarray)?$call(@argv):
+            return qq/return (defined wantarray)?$call(@argv):
                    $call(@argv) || croak "Can't $name(\@_)/ .
                    ($core ? ': $!' : ', \$! is \"$!\"') . '"'
         } else {
-            return qq{$call(@argv) || croak "Can't $name(\@_)} .
+            return qq{return $call(@argv) || croak "Can't $name(\@_)} .
                    ($core ? ': $!' : ', \$! is \"$!\"') . '"';
         }
     }
@@ -631,6 +671,11 @@ sub one_invocation {
 
 }
 
+# Under 5.8 this returns the old copy of the sub, so we can
+# put it back at end of scope.
+
+# TODO : Make sure prototypes are restored correctly.
+
 sub _make_fatal {
     my($class, $sub, $pkg, $void, $lexical) = @_;
     my($name, $code, $sref, $real_proto, $proto, $core, $call);
@@ -667,13 +712,41 @@ sub _make_fatal {
     croak(sprintf(ERROR_BADNAME, $class, $name)) unless $name =~ /^\w+$/;
 
     if (defined(&$sub)) {   # user subroutine
-        $sref = \&$sub;
-        $proto = prototype $sref;
-        $call = '&$sref';
+
+        # This could be something that we've fatalised that
+        # was in core.
+
+        local $@; # Don't clobber anyone else's $@
+
+        if ( $Package_Fatal{$sub} and eval { prototype "CORE::$name" } ) {
+
+            # Something we previously made Fatal that was core.
+            # This is safe to replace with an autodying to core
+            # version.
+
+            $core  = 1;
+            $call  = "CORE::$name";
+            $proto = prototype $call;
+
+            # We return our $sref from this subroutine later
+            # on, indicating this subroutine should be placed
+            # back when we're finished.
+
+            $sref = \&$sub;
+
+        } else {
+
+            # A regular user sub, or a user sub wrapping a
+            # core sub.
+
+            $sref = \&$sub;
+            $proto = prototype $sref;
+            $call = '&$sref';
+
+        }
 
     } elsif ($sub eq $ini && $sub !~ /^CORE::GLOBAL::/) {
         # Stray user subroutine
-        # XXX - Should this be using $sub or $name (orig was $sub)
         croak(sprintf(ERROR_NOTSUB,$sub));
 
     } elsif ($name eq 'system') {
@@ -722,18 +795,20 @@ sub _make_fatal {
     # wrapping already wrapped code when autodie and Fatal are used
     # together.
 
-    unless ($code = $Cached_fatalised_sub{$true_name}{$void}{$lexical}) {
-        $code = qq[
-            sub$real_proto {
-                local(\$", \$!) = (', ', 0);    # TODO - Why do we do this?
-        ];
-        my @protos = fill_protos($proto);
-        $code .= write_invocation($core, $call, $name, $void, $lexical, $sub, @protos);
-        $code .= "}\n";
-        warn $code if $Debug;
-
-        $Cached_fatalised_sub{$true_name}{$void}{$lexical} = $code;
+    if (my $subref = $Cached_fatalised_sub{$true_name}{$void}{$lexical}) {
+        $class->_remove_lexical_subs($pkg, { $name => $subref });
+        return $sref;
     }
+
+    $code = qq[
+        sub$real_proto {
+            local(\$", \$!) = (', ', 0);    # TODO - Why do we do this?
+    ];
+    my @protos = fill_protos($proto);
+    $code .= write_invocation($core, $call, $name, $void, $lexical, $sub, @protos);
+    $code .= "}\n";
+    warn $code if $Debug;
+
 
     # TODO: This changes into our required package, executes our
     # code, and takes a reference to the resulting sub.  It then
@@ -747,11 +822,18 @@ sub _make_fatal {
         $code = eval("package $pkg; use Carp; $code");
         Carp::confess($@) if $@;
         no warnings;   # to avoid: Subroutine foo redefined ...
-        *{$sub} = $code;
+        # *{$sub} = $code;
+
+        $class->_remove_lexical_subs($pkg, { $name => $code });
+
+        $Cached_fatalised_sub{$true_name}{$void}{$lexical} = $code;
 
         # Mark the sub as fatalised.
         $Already_fatalised{$sub} = 1;
     }
+
+    return $sref;
+
 }
 
 1;
@@ -760,7 +842,7 @@ __END__
 
 =head1 NAME
 
-Fatal - replace functions with equivalents which succeed or die
+Fatal - Replace functions with equivalents which succeed or die
 
 =head1 SYNOPSIS
 
@@ -880,10 +962,10 @@ must always be C<:lexical>.  Eg: C<no Fatal qw(:lexical open)>
 
 =head1 GOTCHAS
 
-As of Fatal XXX, subroutines that normally return a list can
-be Fatalised without clobbering their context.  It should be noted
-that Fatal will consider the subroutine to fail if it returns
-either an empty list, or a list consisting of a single undef.
+Subroutines that normally return a list can be Fatalised without
+clobbering their context.  It should be noted that Fatal will consider
+the subroutine to fail if it returns either an empty list, or a list
+consisting of a single undef.
 
 =head1 BUGS
 

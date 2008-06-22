@@ -33,8 +33,6 @@ This is not an exhaustive list of TODO items.
 * Explain :lexical prior to the DIAGNOSTICS section in Fatal.pm  (or
   remove)
 
-* Fill in Fatal version in GOTCHAS in Fatal.pm
-
 == 5.8 ==
 
 * Remove/fix kludge that forces || as the only test
@@ -48,8 +46,12 @@ This is not an exhaustive list of TODO items.
   on user subs, or when we've used 'no autodie ...' to turn
   off a sub until the end of a scope.
 
-* Support backcompat mode.
-
 * lex58 still produces a warning from system, even under Cygwin.
   Does this happen under Linux?  Can we get rid of it, or
   document it better?
+
+* Fix leaking of autodie into other files when they are used from
+  within an autodying scope.
+
+* Consider what happens when import is called at run-time!
+  (Both in 5.10 and 5.8, but especially 5.8)
