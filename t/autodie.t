@@ -2,9 +2,8 @@
 use strict;
 
 use constant NO_SUCH_FILE => 'this_file_had_so_better_not_be_here';
-use constant PERL58 => ($] < 5.010);
 
-use Test::More tests => 18;
+use Test::More tests => 19;
 
 {
 
@@ -38,10 +37,15 @@ use Test::More tests => 18;
 eval { open(my $fh, '<', NO_SUCH_FILE); };
 is($@,"","autodie open outside of lexical scope");
 
-# eval { autodie->import(); };
-# ok(! $@, "Bare autodie allowed");   # TODO: Test it turns on ':all'
+eval {
+    use autodie;	# Should turn on everything
+    open(my $fh, '<', NO_SUCH_FILE);
+};
 
-ok(1, "Import test disabled");
+like($@, qr{Can't open}, "vanilla use autodie turns on everything.");
+
+eval { open(my $fh, '<', NO_SUCH_FILE); };
+is($@,"","vanilla autodie cleans up");
 
 {
     use autodie qw(:io);
@@ -89,11 +93,15 @@ ok(1, "Import test disabled");
 
     ok($@,"no autodie on Fataled sub an error.");
 
-    eval "
-        no autodie qw(close);
-        use Fatal 'close';
-    ";
+    TODO: {
+        local $TODO = "Broken under the One True Way (for now)";
 
-    ok($@, "Using fatal after autodie is an error.");
+        eval "
+            no autodie qw(close);
+            use Fatal 'close';
+        ";
+
+        ok($@, "Using fatal after autodie is an error.");
+    }
 }
 

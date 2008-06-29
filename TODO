@@ -2,9 +2,9 @@ This is not an exhaustive list of TODO items.
 
 * Write a bunch of tests for the exception API
 
-* Consider removing :lexical tests in t/* and convert them to using
+* Remove :lexical tests in t/* and convert them to using
   autodie.  The :lexical option is no longer officially supported in
-  Fatal.
+  Fatal.  These tests may be allowable in an t/internal.t file.
 
 * (More?) tests for user defined subs!
 
@@ -27,13 +27,15 @@ This is not an exhaustive list of TODO items.
 
 * Write a huge amount of tests.
 
-* Write tests to make sure that nothing clobbers $@ accidently,
-  especially in autodie::exception.
+* Figure out how we deal with core modules being called before site_perl.
 
-* Explain :lexical prior to the DIAGNOSTICS section in Fatal.pm  (or
-  remove)
+* Test the many varied forms of sysopen.
 
-== 5.8 ==
+* Add fork() to the list of things that are defined-or-die
+
+* Test fcntl.
+
+== 5.8 / The One True Autodie ==
 
 * Remove/fix kludge that forces || as the only test
   operator under 5.8
@@ -45,6 +47,8 @@ This is not an exhaustive list of TODO items.
 * Support 're-instating' original subs when we've used autodie
   on user subs, or when we've used 'no autodie ...' to turn
   off a sub until the end of a scope.
+
+	* We do this now!  Or we should.  More tests are needed.
 
 * lex58 still produces a warning from system, even under Cygwin.
   Does this happen under Linux?  Can we get rid of it, or

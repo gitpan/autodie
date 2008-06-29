@@ -24,4 +24,4 @@ requires:
 resources:
   blog: http://pjf.id.au/blog/toc.html?tag=autodie
   repository: http://github.com/pfenwick/autodie/tree/master
-version: 1.10_06
+version: 1.10_07
