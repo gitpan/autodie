@@ -4,8 +4,6 @@ use 5.008;  # 5.8.x needed for autodie
 use Carp;
 use strict;
 use warnings;
-use autodie::exception; # TODO - Dynamically load when/if needed
-use Scope::Guard;
 
 use constant LEXICAL_TAG => q{:lexical};
 use constant VOID_TAG    => q{:void};
@@ -33,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = "1.10_07";
+our $VERSION = "1.11_01";
 
 our $Debug ||= 0;
 
@@ -44,6 +42,7 @@ my %TAGS = (
     ':io'      => [qw(:file :filesys :socket)],
     ':file'    => [qw(open close)],
     ':filesys' => [qw(opendir)],
+    ':threads' => [qw(fork)],
     # Can we use qw(getpeername getsockname)? What do they do on failure?
     # XXX - Can socket return false?
     ':socket'  => [qw(accept bind connect getsockopt listen recv send
@@ -58,7 +57,9 @@ $TAGS{':all'} = [ keys %TAGS ];
 my %Use_defined_or;
 
 @Use_defined_or{qw(
-    CORE::send CORE::recv
+    CORE::fork
+    CORE::recv
+    CORE::send
 )} = ();
 
 # Cached_fatalised_sub caches the various versions of our
@@ -88,8 +89,9 @@ my $PACKAGE_GUARD = "guard $PACKAGE";
 sub import {
     my $class   = shift(@_);
     my $void    = 0;
-    my $pkg     = (caller)[0];
     my $lexical = 0;
+
+    my ($pkg, $filename)= caller();
 
     @_ or return;   # 'use Fatal' is a no-op.
 
@@ -176,7 +178,9 @@ sub import {
             # We're not being used in a confusing way, so make
             # the sub fatal.
 
-            my $sub_ref = $class->_make_fatal($func, $pkg, $void, $lexical);
+            my $sub_ref = $class->_make_fatal(
+                $func, $pkg, $void, $lexical, $filename
+            );
 
             $done_this{$func}++;
 
@@ -198,16 +202,13 @@ sub import {
 
         # This magic bit causes %^H to be lexically scoped.
 
-        # TODO - We'll still leak across file boundries.  Add
-        # guards to check the caller's file to see if we have.
-
         $^H |= 0x020000;
 
         # Our package guard gets invoked when we leave our lexical
         # scope.
 
-        push(@ { $^H{$PACKAGE_GUARD} }, Scope::Guard->new(sub {
-            $class->_remove_lexical_subs($pkg, \%unload_later);
+        push(@ { $^H{$PACKAGE_GUARD} }, autodie::Scope::Guard->new(sub {
+            $class->_install_subs($pkg, \%unload_later);
         }));
     }
 
@@ -221,11 +222,12 @@ sub import {
 # It's been redesigned after feedback from ikegami on perlmonks.
 # See http://perlmonks.org/?node_id=693338 .  Ikegami rocks.
 #
-# This code would now be better called _install_lexical_subs
-# since it's now primarily used for installing, even though it
-# can delete as well.
+# Given a package, and hash of (subname => subref) pairs,
+# we install the given subroutines into the package.  If
+# a subref is undef, the subroutine is removed.  Otherwise
+# it replaces any existing subs which were already there.
 
-sub _remove_lexical_subs {
+sub _install_subs {
     my ($class, $pkg, $subs_to_reinstate) = @_;
 
     my $pkg_sym = "${pkg}::";
@@ -308,7 +310,7 @@ sub unimport {
         # function at the end.  Plus, it compeltely nukes
         # it, rather than restoring the user sub.
 
-        $class->_remove_lexical_subs($pkg,{ $symbol => undef });
+        $class->_install_subs($pkg,{ $symbol => undef });
 
     }
 }
@@ -319,7 +321,7 @@ sub unimport {
     my %tag_cache;
 
     sub _expand_tag {
-        my ($tag) = @_;
+        my ($class, $tag) = @_;
 
         if (my $cached = $tag_cache{$tag}) {
             return $cached;
@@ -370,14 +372,14 @@ sub fill_protos {
 # This generates the code that will become our fatalised subroutine.
 
 sub write_invocation {
-    my ($core, $call, $name, $void, $lexical, $sub, @argvs) = @_;
+    my ($class, $core, $call, $name, $void, $lexical, $sub, @argvs) = @_;
 
     if (@argvs == 1) {        # No optional arguments
 
         my @argv = @{$argvs[0]};
         shift @argv;
 
-    return one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
+        return $class->one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
 
     } else {
         my $else = "\t";
@@ -389,7 +391,7 @@ sub write_invocation {
             push @out, "${else}if (\@_ == $n) {\n";
             $else = "\t} els";
 
-        push @out, one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
+        push @out, $class->one_invocation($core,$call,$name,$void,$sub,! $lexical,@argv);
         }
         push @out, q[
             }
@@ -401,7 +403,7 @@ sub write_invocation {
 }
 
 sub one_invocation {
-    my ($core, $call, $name, $void, $sub, $back_compat, @argv) = @_;
+    my ($class, $core, $call, $name, $void, $sub, $back_compat, @argv) = @_;
 
     # If someone is calling us directly (a child class perhaps?) then
     # they could try to mix void without enabling backwards
@@ -409,7 +411,7 @@ sub one_invocation {
     # about it rather than doing something unwise.
 
     if ($void and not $back_compat) {
-        Carp::confess("Internal error: :void mode not supported with autodie");
+        Carp::confess("Internal error: :void mode not supported with $class");
     }
 
     # @argv only contains the results of the in-built prototype
@@ -439,14 +441,6 @@ sub one_invocation {
             return qq{return $call(@argv) || croak "Can't $name(\@_)} .
                    ($core ? ': $!' : ', \$! is \"$!\"') . '"';
         }
-    }
-
-    # New autodie implementation.
-
-    my $op = '||';
-
-    if (exists $Use_defined_or{$call}) {
-        $op = '//';
     }
 
     # The name of our original function is:
@@ -497,6 +491,10 @@ sub one_invocation {
             }
 
             if (\$E) {
+
+                # XXX - TODO - This can't be overridden in child
+                # classes!
+
                 die autodie::exception::system->new(
                     function => q{CORE::system}, args => [ @argv ],
                     message => "\$E"
@@ -508,11 +506,20 @@ sub one_invocation {
 
     }
 
-    # XXX Total kludge, force operator to always be || under 5.8
 
-    $op = '||' if $] < 5.010;
+    # Should we be testing to see if our result is defined, or
+    # just true?
+    my $use_defined_or = exists ( $Use_defined_or{$call} );
 
     local $" = ', ';
+
+    # If we're going to throw an exception, here's the code to use.
+    my $die = qq{
+        die $class->throw(
+            function => q{$true_sub_name}, args => [ @argv ],
+            pragma => q{$class}
+        )
+    };
 
     return qq{
         if (wantarray) {
@@ -520,29 +527,41 @@ sub one_invocation {
             # If we got back nothing, or we got back a single
             # undef, we die.
             if (! \@results or (\@results == 1 and ! defined \$results[0])) {
-                die autodie::exception->new(
-                    function => q{$true_sub_name}, args => [ @argv ]
-                );
+                $die;
             };
             return \@results;
         }
 
         # Otherwise, we're in scalar context.
+        # We're never in a void context, since we have to look
+        # at the result.
 
-        return $call(@argv) $op die autodie::exception->new(
-            function => q{$true_sub_name}, args => [ @argv ]
-        );
-    };
+        my \$result = $call(@argv);
+
+    } . ( $use_defined_or ? qq{
+
+        $die if not defined \$result;
+
+        return \$result;
+
+    } : qq{
+
+        return \$result || $die;
+
+    } ) ;
 
 }
 
-# Under 5.8 this returns the old copy of the sub, so we can
+# This returns the old copy of the sub, so we can
 # put it back at end of scope.
 
-# TODO : Make sure prototypes are restored correctly.
+# TODO : Check to make sure prototypes are restored correctly.
+
+# TODO: Taking a huge list of arguments is awful.  Rewriting to
+#       take a hash would be lovely.
 
 sub _make_fatal {
-    my($class, $sub, $pkg, $void, $lexical) = @_;
+    my($class, $sub, $pkg, $void, $lexical, $filename) = @_;
     my($name, $code, $sref, $real_proto, $proto, $core, $call);
     my $ini = $sub;
 
@@ -555,14 +574,8 @@ sub _make_fatal {
         $Package_Fatal{$sub} = 1;
     }
 
-    # Return immediately if we've already fatalised our code.
-    # XXX - Disabled under 5.8+, since we need to instate our
-    # replacement subs every time.
-
     # TODO - We *should* be able to do skipping, since we know when
     # we've lexicalised / unlexicalised a subroutine.
-
-    # return if not defined $Already_fatalised;
 
     $name = $sub;
     $name =~ s/.*::// or $name =~ s/^&//;
@@ -597,10 +610,6 @@ sub _make_fatal {
 
             # A regular user sub, or a user sub wrapping a
             # core sub.
-            #
-            # TODO - autodie.t fails "vanilla autodie cleanup",
-            # and it seems to be related to us wrongly identifying
-            # code...  Or that could be a red herring.
 
             $sref = \&$sub;
             $proto = prototype $sref;
@@ -658,8 +667,13 @@ sub _make_fatal {
     # wrapping already wrapped code when autodie and Fatal are used
     # together.
 
-    if (my $subref = $Cached_fatalised_sub{$true_name}{$void}{$lexical}) {
-        $class->_remove_lexical_subs($pkg, { $name => $subref });
+    # NB: We must use '$sub' (the name plus package) and not
+    # just '$name' (the short name) here.  Failing to do so
+    # results code that's in the wrong package, and hence has
+    # access to the wrong package filehandles.
+
+    if (my $subref = $Cached_fatalised_sub{$sub}{$void}{$lexical}) {
+        $class->_install_subs($pkg, { $name => $subref });
         return $sref;
     }
 
@@ -668,32 +682,117 @@ sub _make_fatal {
             local(\$", \$!) = (', ', 0);    # TODO - Why do we do this?
     ];
     my @protos = fill_protos($proto);
-    $code .= write_invocation($core, $call, $name, $void, $lexical, $sub, @protos);
+    $code .= $class->write_invocation($core, $call, $name, $void, $lexical, $sub, @protos);
     $code .= "}\n";
     warn $code if $Debug;
 
-
-    # TODO: This changes into our required package, executes our
-    # code, and takes a reference to the resulting sub.  It then
-    # slots that sub into the GLOB table.  However this is a monumental
-    # waste of time for CORE subs, since they're always going to be
-    # the same (assuming same lexical/void switches) regardless of
-    # the package.  It would be nice to cache these.
+    # I thought that changing package was a monumental waste of
+    # time for CORE subs, since they'll always be the same.  However
+    # that's not the case, since they may refer to package-based
+    # filehandles (eg, with open).
+    #
+    # There is potential to more aggressively cache core subs
+    # that we know will never want to interact with package variables
+    # and filehandles.
 
     {
+        local $@;
         no strict 'refs'; # to avoid: Can't use string (...) as a symbol ref ...
         $code = eval("package $pkg; use Carp; $code");
-        Carp::confess($@) if $@;
-        no warnings;   # to avoid: Subroutine foo redefined ...
-        # *{$sub} = $code;
-
-        $class->_remove_lexical_subs($pkg, { $name => $code });
-
-        $Cached_fatalised_sub{$true_name}{$void}{$lexical} = $code;
+        Carp::confess("$@") if $@;
     }
+
+    # Now we need to wrap our fatalised sub inside an itty bitty
+    # closure, which can detect if we've leaked into another file.
+    # Luckily, we only need to do this for lexical (autodie)
+    # subs.  Fatal subs can leak all they want, it's considered
+    # a "feature" (or at least backwards compatible).
+
+    # TODO: Cache our leak guards!
+
+    # TODO: This is pretty hairy code.  A lot more tests would
+    # be really nice for this.
+
+    my $leak_guard;
+
+    if ($lexical) {
+
+        $leak_guard = qq<
+            package $pkg;
+
+            sub$real_proto {
+
+                # If we're called from the correct file, then use the
+                # autodying code.
+                goto &\$code if ((caller)[1] eq \$filename);
+
+                # Oh bother, we've leaked into another file.  Call the
+                # original code.  Note that \$sref may actually be a
+                # reference to a Fatalised version of a core built-in.
+                # That's okay, because Fatal *always* leaks between files.
+
+                goto &\$sref if \$sref;
+        >;
+
+
+        # If we're here, it must have been a core subroutine called.
+        # Warning: The following code may disturb some viewers.
+
+        # TODO: It should be possible to combine this with
+        # write invocations.
+
+        foreach my $proto (@protos) {
+            local $" = ", ";    # So @args is formatted correctly.
+            my ($count, @args) = @$proto;
+            $leak_guard .= qq<
+                if (\@_ == $count) {
+                    return $call(@args);
+                }
+            >;
+        }
+
+        $leak_guard .= qq< croak "Internal error in Fatal/autodie.  Leak-guard failure"; } >;
+
+        # warn "$leak_guard\n";
+
+        local $@;
+
+        $leak_guard = eval $leak_guard;
+
+        die "Internal error in $class: Leak-guard installation failure: $@" if $@;
+    }
+
+    $class->_install_subs($pkg, { $name => $leak_guard || $code });
+
+    $Cached_fatalised_sub{$sub}{$void}{$lexical} = $leak_guard || $code;
 
     return $sref;
 
+}
+
+sub throw {
+    my ($class, @args) = @_;
+
+    require autodie::exception;
+    return autodie::exception->new(@args);
+}
+
+package autodie::Scope::Guard;
+
+# This code schedules the cleanup of subroutines at the end of
+# scope.  It's directly inspired by chocolateboy's excellent
+# Scope::Guard module.
+
+sub new {
+    my ($class, $handler) = @_;
+
+    return bless $handler, $class;
+}
+
+sub DESTROY {
+    my ($self) = @_;
+
+    $self->();
 }
 
 1;
@@ -796,22 +895,10 @@ the C<perlbug> command.
 
 =back
 
-=head1 GOTCHAS
-
-Subroutines that normally return a list can be Fatalised without
-clobbering their context.  It should be noted that Fatal will consider
-the subroutine to fail if it returns either an empty list, or a list
-consisting of a single undef.
-
 =head1 BUGS
 
-Fatal only makes changes the package(s) in which it is used, even when
-changing built-in function.  Changing to a new package will cause Fatal not
-to check calls to any functions for failure (unless Fatal was called there,
-too).
-
-C<Fatal> clobbers the context in which a function is called, always
-making it a scalar context, except when the C<:void> tag is used.
+C<Fatal> clobbers the context in which a function is called and always
+makes it a scalar context, except when the C<:void> tag is used.
 This problem does not exist in L<autodie>.
 
 =head1 AUTHOR
@@ -832,6 +919,7 @@ same terms as Perl itself.
 
 L<autodie> for a nicer way to use lexical Fatal.
 
-L<IPC::System::Simple> for a similar idea for calls to C<system()>.
+L<IPC::System::Simple> for a similar idea for calls to C<system()>
+and backticks.
 
 =cut

@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = "1.10_07";
+    $VERSION = "1.11_01";
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -189,14 +189,14 @@ turned off, use C<no autodie> instead.
 
 Applying C<autodie> to C<system> causes the exotic C<system { ... } @args >
 form to be considered a syntax error until the end of the lexical scope.
-If you really need to use the exotic form, you cna call C<CORE::system>
+If you really need to use the exotic form, you can call C<CORE::system>
 instead.
 
-The use of C<use>, C<require> or C<do file> inside the same scope as
-autodie will cause autodying behaviour to "leak" into that file.
-This is a bug that will be fixed before the final release.
+"Used only once" warnings can be generated when C<autodie> or C<Fatal>
+is used with package filehandles (eg, C<FILE>).  It's strongly recommended
+you use scalar filehandles instead.
 
-There are penty more bugs!  See
+There are plenty more bugs!  See
 L<http://github.com/pfenwick/autodie/tree/master/TODO> for a selection
 of what's remaining to be fixed.
 

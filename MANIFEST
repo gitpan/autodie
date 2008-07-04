@@ -1,6 +1,5 @@
 AUTHORS
 Changes
-DESIGN.pod
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
@@ -25,10 +24,15 @@ t/basic_exceptions.t
 t/boilerplate.t
 t/context.t
 t/context_lexical.t
+t/crickey.t
 t/exceptions.t
 t/Fatal.t
+t/filehandles.t
+t/fork.t
 t/kwalitee.t
 t/lex58.t
+t/lib/autodie/test/au.pm
+t/lib/autodie/test/au/exception.pm
 t/pod-coverage.t
 t/pod.t
 t/recv.t
@@ -36,6 +40,5 @@ t/repeat.t
 t/scope_leak.t
 t/sysopen.t
 t/system.t
-t/todo.t
 t/version.t
 TODO
