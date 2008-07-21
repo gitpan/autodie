@@ -14,7 +14,7 @@ use overload
 
 use if ($] >= 5.010), overload => '~~'  => "matches";
 
-our $VERSION = '1.11_01';
+our $VERSION = '1.99';
 
 my $PACKAGE = __PACKAGE__;  # Useful to have a scalar for hash keys.
 
@@ -38,9 +38,6 @@ autodie::exception - Exceptions from autodying functions.
 
 
 =head1 DESCRIPTION
-
-B<NOTE!  This is BETA code.  It is NOT the final release.  Implementation
-and interface may change!>
 
 When an L<autodie> enabled function fails, it generates an
 C<autodie::exception> object.  This can be interrogated to
@@ -174,7 +171,9 @@ C<CORE::> is assumed.
 
 For a string that does start with a colon, if the subroutine
 throwing the exception I<does> that behaviour.  For example, the
-C<CORE::open> subroutine does C<:file>, C<:io>, and C<:CORE>.
+C<CORE::open> subroutine does C<:file>, C<:io> and C<:all>.
+
+See L<autodie/CATEGORIES> for futher information.
 
 =back
 

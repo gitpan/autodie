@@ -20,6 +20,8 @@ recommends:
 requires:
   perl: 5.8.0
 resources:
-  blog: http://pjf.id.au/blog/toc.html?tag=autodie
+  Blog: http://pjf.id.au/blog/toc.html?tag=autodie
+  bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
+  license: http://dev.perl.org/licenses/
   repository: http://github.com/pfenwick/autodie/tree/master
-version: 1.11_01
+version: 1.99

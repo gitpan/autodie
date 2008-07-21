@@ -31,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = "1.11_01";
+our $VERSION = "1.99";
 
 our $Debug ||= 0;
 
@@ -40,26 +40,42 @@ our $Debug ||= 0;
 
 my %TAGS = (
     ':io'      => [qw(:file :filesys :socket)],
-    ':file'    => [qw(open close)],
+    ':file'    => [qw(open close sysopen fcntl fileno)],
     ':filesys' => [qw(opendir)],
     ':threads' => [qw(fork)],
+    ':system'  => [qw(system exec)],
+
     # Can we use qw(getpeername getsockname)? What do they do on failure?
     # XXX - Can socket return false?
     ':socket'  => [qw(accept bind connect getsockopt listen recv send
                    setsockopt shutdown socketpair)],
+
+    # Our defaults don't include system(), because it depends upon
+    # an optional module, and it breaks the exotic form.
+    #
+    # This *may* change in the future.  I'd love IPC::System::Simple
+    # to be a dependency rather than a recommendation, and hence for
+    # system() to be autodying by default.
+
+    ':default' => [qw(:io :threads)],
 );
 
-$TAGS{':all'} = [ keys %TAGS ];
+$TAGS{':all'}  = [ keys %TAGS ];
 
 # This hash contains subroutines for which we should
 # subroutine() // die() rather than subroutine() || die()
 
 my %Use_defined_or;
 
+# CORE::open returns undef on failure.  It can legitimately return
+# 0 on success, eg: open(my $fh, '-|') || exec(...);
+
 @Use_defined_or{qw(
     CORE::fork
     CORE::recv
     CORE::send
+    CORE::open
+    CORE::fileno
 )} = ();
 
 # Cached_fatalised_sub caches the various versions of our
@@ -69,19 +85,26 @@ my %Use_defined_or;
 
 my %Cached_fatalised_sub = ();
 
-# Evry time we're called with package scope, we record the subroutine
-# (including package or CORE::) in %Package_Fatal.  If we find ourselves
-# in a Fatalised sub without any %^H hints turned on, we can use this
-# to determine if we should be acting with package scope, or we've
-# just fallen out of lexical context.
-#
-# TODO - This doing a lot less than it used to now.  Check
-# what still uses it and how.
+# Every time we're called with package scope, we record the subroutine
+# (including package or CORE::) in %Package_Fatal.  This allows us
+# to detect illegal combinations of autodie and Fatal, and makes sure
+# we don't accidently make a Fatal function autodying (which isn't
+# very useful).
 
-my %Package_Fatal = (); # Tracks Fatal with package scope
+my %Package_Fatal = ();
+
+# The first time we're called with a user-sub, we cache it here.
+# In the case of a "no autodie ..." we put back the cached copy.
+
+my %Original_user_sub = ();
+
+# We use our package in a few hash-keys.  Having it in a scalar is
+# convenient.  The "guard $PACKAGE" string is used as a key when
+# setting up lexical guards.
 
 my $PACKAGE       = __PACKAGE__;
 my $PACKAGE_GUARD = "guard $PACKAGE";
+my $NO_PACKAGE    = "no $PACKAGE";      # Used to detect 'no autodie'
 
 # Here's where all the magic happens when someone write 'use Fatal'
 # or 'use autodie'.
@@ -91,7 +114,7 @@ sub import {
     my $void    = 0;
     my $lexical = 0;
 
-    my ($pkg, $filename)= caller();
+    my ($pkg, $filename) = caller();
 
     @_ or return;   # 'use Fatal' is a no-op.
 
@@ -103,10 +126,10 @@ sub import {
         shift @_;
 
         # If we see no arguments and :lexical, we assume they
-        # wanted ':all'.
+        # wanted ':default'.
 
         if (@_ == 0) {
-            push(@_, ':all');
+            push(@_, ':default');
         }
 
         # Don't allow :lexical with :void, it's needlessly confusing.
@@ -163,20 +186,17 @@ sub import {
             $sub = "${pkg}::$sub" unless $sub =~ /::/;
 
             # If we're being called as Fatal, and we've previously
-            # had a 'no X' in scope for the subroutine.
+            # had a 'no X' in scope for the subroutine, then complain
+            # bitterly.
 
-            # XXX - We need another way of doing this.
-            #
-            # NB, previously we checked a lexical hint in %^H, and
-            # this *did* work fine, even under 5.8.  Check out
-            # v_chocolateboy for an example.
-
-            # if (! $lexical and "we had a no autodie qw(x) already") {
-            #     croak(sprintf(ERROR_FATAL_CONFLICT, $_, $_));
-            # }
+            if (! $lexical and $^H{$NO_PACKAGE}{$sub}) {
+                 croak(sprintf(ERROR_FATAL_CONFLICT, $func, $func));
+            }
 
             # We're not being used in a confusing way, so make
-            # the sub fatal.
+            # the sub fatal.  Note that _make_fatal returns the
+            # old (original) version of the sub, or undef for
+            # built-ins.
 
             my $sub_ref = $class->_make_fatal(
                 $func, $pkg, $void, $lexical, $filename
@@ -184,12 +204,13 @@ sub import {
 
             $done_this{$func}++;
 
+            $Original_user_sub{$sub} ||= $sub_ref;
+
             # If we're making lexical changes, we need to arrange
             # for them to be cleaned at the end of our scope, so
             # record them here.
 
             $unload_later{$func} = $sub_ref if $lexical;
-
         }
     }
 
@@ -210,6 +231,7 @@ sub import {
         push(@ { $^H{$PACKAGE_GUARD} }, autodie::Scope::Guard->new(sub {
             $class->_install_subs($pkg, \%unload_later);
         }));
+
     }
 
     return;
@@ -302,17 +324,27 @@ sub unimport {
             croak(sprintf(ERROR_AUTODIE_CONFLICT,$symbol,$symbol));
         }
 
-        # Under 5.8, we'll just nuke the sub out of
-        # our namespace.
+        # Record 'no autodie qw($sub)' as being in effect.
+        # This is to catch conflicting semantics elsewhere
+        # (eg, mixing Fatal with no autodie)
 
-        # XXX - This isn't a great solution, since it
-        # leaves it nuked.  We really want an un-nuke
-        # function at the end.  Plus, it compeltely nukes
-        # it, rather than restoring the user sub.
+        $^H{$NO_PACKAGE}{$sub} = 1;
+
+        if (my $original_sub = $Original_user_sub{$sub}) {
+            # Hey, we've got an original one of these, put it back.
+            $class->_install_subs($pkg, { $symbol => $original_sub });
+            next;
+        }
+
+        # We don't have an original copy of the sub, on the assumption
+        # it's core (or doesn't exist), we'll just nuke it.
 
         $class->_install_subs($pkg,{ $symbol => undef });
 
     }
+
+    return;
+
 }
 
 # TODO - This is rather terribly inefficient right now.
@@ -427,7 +459,7 @@ sub one_invocation {
 
         if ($call eq 'CORE::system') {
             return q{
-                croak("UNIMPLEMENTED: use Fatal qw(system) not supported.");
+                croak("UNIMPLEMENTED: use Fatal qw(system) not yet supported.");
             };
         }
 
@@ -645,6 +677,15 @@ sub _make_fatal {
         $call = 'CORE::system';
         $name = 'system';
 
+    } elsif ($name eq 'exec') {
+        # Exec doesn't have a prototype.  We don't care.  This
+        # breaks the exotic form with lexical scope, and gives
+        # the regular form a "do or die" beaviour as expected.
+
+        $call = 'CORE::exec';
+        $name = 'exec';
+        $core = 1;
+
     } else {            # CORE subroutine
         $proto = eval { prototype "CORE::$name" };
         croak(sprintf(ERROR_NOT_BUILT,$name)) if $@;
@@ -681,6 +722,11 @@ sub _make_fatal {
         sub$real_proto {
             local(\$", \$!) = (', ', 0);    # TODO - Why do we do this?
     ];
+
+    # Don't have perl whine if exec fails, since we'll be handling
+    # the exception now.
+    $code .= "no warnings qw(exec);\n" if $call eq "CORE::exec";
+
     my @protos = fill_protos($proto);
     $code .= $class->write_invocation($core, $call, $name, $void, $lexical, $sub, @protos);
     $code .= "}\n";

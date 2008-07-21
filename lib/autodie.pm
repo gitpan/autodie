@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = "1.11_01";
+    $VERSION = "1.99";
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -73,7 +73,7 @@ autodie - Replace functions with ones that succeed or die with lexical scope
 
 =head1 SYNOPSIS
 
-    use autodie;    # Recommended, implies 'use autodie qw(:all)'
+    use autodie;    # Recommended, implies 'use autodie qw(:default)'
 
     use autodie qw(open close);   # open/close succeed or die
 
@@ -92,9 +92,6 @@ autodie - Replace functions with ones that succeed or die with lexical scope
         It is better to die() than to return() in failure.
 
                 -- Klingon programming proverb.
-
-B<NOTE!  This is BETA code.  It is NOT the final release.  Implementation
-and interface may change!>
 
 The C<autodie> pragma provides a convenient way to replace functions
 that normally return false on failure with equivalents that throw
@@ -162,16 +159,59 @@ following structure may be used:
 See L<autodie::exception> for further information on interrogating
 exceptions.
 
+=head1 CATEGORIES
+
+Autodie uses a simple set of categories to group together similar
+built-ins.  Requesting a category type (starting with a colon) will
+enable autodie for all built-ins beneath that category.  For example,
+requesting C<:file> will enable autodie for C<close>, C<fcntl>,
+C<fileno>, C<open> and C<sysopen>.
+
+The categories are currently:
+
+    :all
+        :default
+            :io
+                :file
+                    close
+                    fcntl
+                    fileno
+                    open
+                    sysopen
+                :filesys
+                    opendir
+                :socket
+                    accept
+                    bind
+                    connect
+                    getsockopt
+                    listen
+                    recv
+                    send
+                    setsockopt
+                    shutdown
+                    socketpair
+            :threads
+                fork
+        :system
+            system
+            exec
+
+
+A plain C<use autodie> implies C<use autodie qw(:default)>.  Note that
+C<system> and C<exec> are not enabled by default.  C<system> requires
+the optional L<IPC::System::Simple> module to be installed, and enabling
+C<system> or C<exec> will invalidate their exotic forms.  See L</BUGS>
+below for more details.
+
+Note that while the above category system is presently a strict
+hierarchy, this should not be assumed.
+
 =head1 GOTCHAS
 
 Functions called in list context are assumed to have failed if they
 return an empty list, or a list consisting only of a single undef
 element.
-
-A bare autodie will change from meaning C<:all> to C<:default>
-before the final release.  There is the possibility for C<:default>
-may contain user-defined subs, or for some built-ins that exist in
-C<:all> to have been removed from C<:default>.
 
 =head1 DIAGNOSTICS
 
@@ -180,25 +220,42 @@ C<:all> to have been removed from C<:default>.
 =item :void cannot be used with lexical scope
 
 The C<:void> option is supported in L<Fatal>, but not
-C<autodie>.  If you want a block of code with C<autodie>
-turned off, use C<no autodie> instead.
+C<autodie>.  However you can explicitly disable autodie
+end the end of the current block with C<no autodie>.
+To disable autodie for only a single function (eg, open)
+use or C<no autodie qw(open)>.
 
 =back
 
+See also L<Fatal/DIAGNOSTICS>.
+
 =head1 BUGS
 
-Applying C<autodie> to C<system> causes the exotic C<system { ... } @args >
-form to be considered a syntax error until the end of the lexical scope.
+Applying C<autodie> to C<system> or C<exec> causes the exotic
+forms C<system { $cmd } @args > or C<exec { $cmd } @args>
+to be considered a syntax error until the end of the lexical scope.
 If you really need to use the exotic form, you can call C<CORE::system>
-instead.
+or C<CORE::exec> instead, or use C<no autodie qw(system exec)> before
+calling the exotic form.
 
 "Used only once" warnings can be generated when C<autodie> or C<Fatal>
 is used with package filehandles (eg, C<FILE>).  It's strongly recommended
 you use scalar filehandles instead.
 
-There are plenty more bugs!  See
-L<http://github.com/pfenwick/autodie/tree/master/TODO> for a selection
-of what's remaining to be fixed.
+When using C<autodie> or C<Fatal> with user subroutines, the
+declaration of those subroutines must appear before the first use of
+C<Fatal> or C<autodie>, or have been exported from a module.
+Attempting to ue C<Fatal> or C<autodie> on other user subroutines will
+result in a compile-time error.
+
+A TODO list of items remaining for improvement can be found in
+the development tree for the module at
+L<http://github.com/pfenwick/autodie/tree/master/TODO>.
+
+=head2 REPORTING BUGS
+
+Please report bugs via the CPAN Request Tracker at
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie>.
 
 =head1 AUTHOR
 

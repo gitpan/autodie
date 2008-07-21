@@ -26,13 +26,18 @@ t/context.t
 t/context_lexical.t
 t/crickey.t
 t/exceptions.t
+t/exec.t
 t/Fatal.t
 t/filehandles.t
+t/fileno.t
 t/fork.t
+t/internal.t
 t/kwalitee.t
+t/lethal.t
 t/lex58.t
 t/lib/autodie/test/au.pm
 t/lib/autodie/test/au/exception.pm
+t/lib/lethal.pm
 t/pod-coverage.t
 t/pod.t
 t/recv.t
@@ -40,5 +45,6 @@ t/repeat.t
 t/scope_leak.t
 t/sysopen.t
 t/system.t
+t/usersub.t
 t/version.t
 TODO
