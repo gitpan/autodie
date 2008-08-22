@@ -14,7 +14,7 @@ use overload
 
 use if ($] >= 5.010), overload => '~~'  => "matches";
 
-our $VERSION = '1.99';
+our $VERSION = '1.991';
 
 my $PACKAGE = __PACKAGE__;  # Useful to have a scalar for hash keys.
 
@@ -328,7 +328,7 @@ Primarily intended for use by format handlers.
 sub add_file_and_line {
     my ($this) = @_;
 
-    return sprintf(" at %s line %d", $this->file, $this->line);
+    return sprintf(" at %s line %d\n", $this->file, $this->line);
 }
 
 =head3 stringify
@@ -411,6 +411,7 @@ sub format_default {
     my $error = autodie::exception->new(
         args => \@_,
         function => "CORE::open",
+        errno => $!,
     );
 
 
@@ -418,6 +419,11 @@ Creates a new C<autodie::exception> object.  Normally called
 directly from an autodying function.  The C<function> argument
 is required, its the function we were trying to call that
 generated the exception.  The C<args> parameter is optional.
+
+The C<errno> value is optional.  In versions of C<autodie::exception>
+1.99 and earlier the code would try to automatically use the
+current value of C<$!>, but this was unreliable and is no longer
+supported.
 
 Atrributes such as package, file, and caller are determined
 automatically, and cannot be specified.
@@ -444,6 +450,9 @@ sub _init {
 
     my ($this, %args) = @_;
 
+    # Capturing errno here is not necessarily reliable.
+    my $original_errno = $!;
+
     our $init_called = 1;
 
     my $class = ref $this;
@@ -466,6 +475,7 @@ sub _init {
 
         next if $package->isa('Fatal');
         next if $package->isa($class);
+        next if $package->isa(__PACKAGE__);
         next if $file =~ /^\(eval\s\d+\)$/;
 
         last;
@@ -477,7 +487,8 @@ sub _init {
     $this->{$PACKAGE}{line}    = $line;
     $this->{$PACKAGE}{caller}  = $sub;
     $this->{$PACKAGE}{package} = $package;
-    $this->{$PACKAGE}{errno}   = $!;
+
+    $this->{$PACKAGE}{errno}   = $args{errno} || 0;
 
     $this->{$PACKAGE}{args}    = $args{args} || [];
     $this->{$PACKAGE}{function}= $args{function} or

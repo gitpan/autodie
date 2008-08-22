@@ -31,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = "1.99";
+our $VERSION = '1.991';
 
 our $Debug ||= 0;
 
@@ -41,7 +41,7 @@ our $Debug ||= 0;
 my %TAGS = (
     ':io'      => [qw(:file :filesys :socket)],
     ':file'    => [qw(open close sysopen fcntl fileno)],
-    ':filesys' => [qw(opendir)],
+    ':filesys' => [qw(opendir chdir)],
     ':threads' => [qw(fork)],
     ':system'  => [qw(system exec)],
 
@@ -529,7 +529,7 @@ sub one_invocation {
 
                 die autodie::exception::system->new(
                     function => q{CORE::system}, args => [ @argv ],
-                    message => "\$E"
+                    message => "\$E", errno => \$!,
                 );
             }
 
@@ -549,7 +549,7 @@ sub one_invocation {
     my $die = qq{
         die $class->throw(
             function => q{$true_sub_name}, args => [ @argv ],
-            pragma => q{$class}
+            pragma => q{$class}, errno => \$!,
         )
     };
 

@@ -1,5 +1,37 @@
 Revision history for Fatal
 
+1.991 Fri Aug 22 23:57:24 AUSEST 2008
+
+        * BUGFIX: RT #38614, stringified autodie::exceptions objects
+          now always end with a newline.  Thanks to Offer Kaye for the
+          report.
+
+        * BUGFIX: Makefile.PL is no longer executable.
+
+        * BUGFIX: 'chdir' added to defaults, and the :filesys group.
+
+        * BUGFIX: RT #38598, the errno attribute on autodie::exception
+          objects is now correctly set.
+
+        * BUGFIX: RT #38066, exceptions from system() now report
+          the correct line number.
+
+        * TEST: Internal tests changes to ease integration with core.
+
+        * TEST: Checks added for empty 'errno' string in basic_exceptions.t
+
+        * TEST: Errors should end with a newline.
+
+        * TEST: fork tests should no longer mysteriously fail
+          on Solaris.
+
+        * TEST: backcompat.t should no longer give strange failures on
+          old versions of 5.8.3 or earlier.
+
+        * TEST: system.t ensures the correct file is reported.
+
+        * BUILD: Upgrade to Module::Install 0.75
+
 1.99 Mon Jul 21 02:25:23 PDT 2008
 
         * RELEASE CODENAME: "jarich", in thanks for her giving

@@ -1,7 +1,8 @@
 #!/usr/bin/perl -w
 use strict;
+use FindBin;
 use Test::More tests => 4;
-use lib 't/lib';
+use lib "$FindBin::Bin/lib";
 use lethal qw(open);
 
 use constant NO_SUCH_FILE => "this_file_had_better_not_exist";
