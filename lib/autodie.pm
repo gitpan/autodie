@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = "1.991";
+    $VERSION = "1.992";
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -173,13 +173,17 @@ The categories are currently:
         :default
             :io
                 :file
+                    binmode
                     close
                     fcntl
                     fileno
                     open
                     sysopen
                 :filesys
+                    chdir
                     opendir
+                    rename
+                    unlink
                 :socket
                     accept
                     bind
@@ -248,10 +252,6 @@ C<Fatal> or C<autodie>, or have been exported from a module.
 Attempting to ue C<Fatal> or C<autodie> on other user subroutines will
 result in a compile-time error.
 
-A TODO list of items remaining for improvement can be found in
-the development tree for the module at
-L<http://github.com/pfenwick/autodie/tree/master/TODO>.
-
 =head2 REPORTING BUGS
 
 Please report bugs via the CPAN Request Tracker at
@@ -269,6 +269,9 @@ same terms as Perl itself.
 =head1 SEE ALSO
 
 L<Fatal>, L<autodie::exception>, L<IPC::System::Simple>
+
+I<Perl tips, autodie> at
+L<http://perltraining.com.au/tips/2008-08-20.html>
 
 =head1 ACKNOWLEDGEMENTS
 

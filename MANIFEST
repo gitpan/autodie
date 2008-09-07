@@ -25,11 +25,13 @@ t/boilerplate.t
 t/context.t
 t/context_lexical.t
 t/crickey.t
+t/dbmopen.t
 t/exceptions.t
 t/exec.t
 t/Fatal.t
 t/filehandles.t
 t/fileno.t
+t/files.t
 t/fork.t
 t/internal.t
 t/kwalitee.t

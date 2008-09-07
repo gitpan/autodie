@@ -9,7 +9,7 @@ use constant LEXICAL_TAG => q{:lexical};
 use constant VOID_TAG    => q{:void};
 
 use constant ERROR_NOARGS    => 'Cannot use lexical %s with no arguments';
-use constant ERROR_VOID_LEX  => VOID_TAG. 'cannot be used with lexical scope';
+use constant ERROR_VOID_LEX  => VOID_TAG.' cannot be used with lexical scope';
 use constant ERROR_LEX_FIRST => LEXICAL_TAG.' must be used as first argument';
 use constant ERROR_NO_LEX    => "no %s can only start with ".LEXICAL_TAG;
 use constant ERROR_BADNAME   => "Bad subroutine name for %s: %s";
@@ -31,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '1.991';
+our $VERSION = '1.992';
 
 our $Debug ||= 0;
 
@@ -39,9 +39,10 @@ our $Debug ||= 0;
 # These are all assumed to be CORE::
 
 my %TAGS = (
-    ':io'      => [qw(:file :filesys :socket)],
-    ':file'    => [qw(open close sysopen fcntl fileno)],
-    ':filesys' => [qw(opendir chdir)],
+    ':io'      => [qw(:dbm :file :filesys :socket)],
+    ':dbm'     => [qw(dbmopen dbmclose)],
+    ':file'    => [qw(open close sysopen fcntl fileno binmode)],
+    ':filesys' => [qw(opendir closedir chdir unlink rename)],
     ':threads' => [qw(fork)],
     ':system'  => [qw(system exec)],
 
@@ -553,7 +554,14 @@ sub one_invocation {
         )
     };
 
+    # AFAIK everything that can be given an unopned filehandle
+    # will fail if it tries to use it, so we don't really need
+    # the 'unopened' warning class here.  Especially since they
+    # then report the wrong line number.
+
     return qq{
+        no warnings qw(unopened);
+
         if (wantarray) {
             my \@results = $call(@argv);
             # If we got back nothing, or we got back a single
