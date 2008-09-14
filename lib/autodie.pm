@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = "1.992";
+    $VERSION = "1.993";
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -172,6 +172,9 @@ The categories are currently:
     :all
         :default
             :io
+                :dbm
+                    dbmclose
+                    dbmopen
                 :file
                     binmode
                     close
@@ -181,6 +184,7 @@ The categories are currently:
                     sysopen
                 :filesys
                     chdir
+                    closedir
                     opendir
                     rename
                     unlink
@@ -256,6 +260,16 @@ result in a compile-time error.
 
 Please report bugs via the CPAN Request Tracker at
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie>.
+
+=head1 FEEDBACK
+
+If you find this module useful, please consider rating it on the
+CPAN Ratings service at
+L<http://cpanratings.perl.org/rate?distribution=autodie> .
+
+The module author loves to hear how C<autodie> has made your life
+better (or worse).  Feedback can be sent to
+E<lt>pjf@perltraining.com.auE<gt>.
 
 =head1 AUTHOR
 

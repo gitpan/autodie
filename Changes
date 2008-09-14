@@ -1,5 +1,23 @@
 Revision history for autodie
 
+1.993  (Devel)
+
+        * DOCUMENTATION: The :dbm tag is now correctly documented
+          in autodie/CATEGORIES.  Thanks to Darren Duncan for spotting
+          this.  (RT #39172)
+
+        * DOCUMENTATION: The README file has been updated to reflect
+          current minimum Perl versions (5.8.0) and current resources.
+
+        * DOCUMENTATION: The closedir() function is properly
+          documented as being included in the :filesys tag.
+
+        * DOCUMENTATION: Feedback section added to the autodie
+          documentation.  If you find the module useful, consider
+          saying so on cpanratings.perl.org, or dropping me a note.
+
+        * BUILD: Upgrade to Module::Intstall 0.77
+
 1.992 Sun Sep  7 15:51:32 AUSEST 2008
 
         * BUGFIX: unlink(), rename(), chdir() and closedir() functions
