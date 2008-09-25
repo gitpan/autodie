@@ -14,7 +14,7 @@ use overload
 
 use if ($] >= 5.010), overload => '~~'  => "matches";
 
-our $VERSION = '1.993';
+our $VERSION = '1.994';
 
 my $PACKAGE = __PACKAGE__;  # Useful to have a scalar for hash keys.
 
@@ -242,7 +242,62 @@ my %formatter_of = (
     'CORE::close'   => \&_format_close,
     'CORE::open'    => \&_format_open,
     'CORE::dbmopen' => \&_format_dbmopen,
+    'CORE::flock'   => \&_format_flock,
 );
+
+# TODO: Our tests only check LOCK_EX | LOCK_NB is properly
+# formatted.  Try other combinations and ensure they work
+# correctly.
+
+sub _format_flock {
+    my ($this) = @_;
+
+    require Fcntl;
+
+    my $filehandle = $this->args->[0];
+    my $raw_mode   = $this->args->[1];
+
+    my $mode_type;
+    my $lock_unlock;
+
+    if ($raw_mode & Fcntl::LOCK_EX() ) {
+        $lock_unlock = "lock";
+        $mode_type = "for exclusive access";
+    }
+    elsif ($raw_mode & Fcntl::LOCK_SH() ) {
+        $lock_unlock = "lock";
+        $mode_type = "for shared access";
+    }
+    elsif ($raw_mode & Fcntl::LOCK_UN() ) {
+        $lock_unlock = "unlock";
+        $mode_type = "";
+    }
+    else {
+        # I've got no idea what they're trying to do.
+        $lock_unlock = "lock";
+        $mode_type = "with mode $raw_mode";
+    }
+
+    my $cooked_filehandle;
+
+    if ($filehandle and not ref $filehandle) {
+
+        # A package filehandle with a name!
+
+        $cooked_filehandle = " $filehandle";
+    }
+    else {
+        # Otherwise we have a scalar filehandle.
+
+        $cooked_filehandle = '';
+
+    }
+
+    local $! = $this->errno;
+
+    return "Can't $lock_unlock filehandle$cooked_filehandle $mode_type: $!";
+
+}
 
 # Default formatter for CORE::dbmopen
 sub _format_dbmopen {
@@ -284,6 +339,7 @@ sub _format_close {
         return "Can't close filehandle '$close_arg': '$!'";
     }
 
+    # TODO - This will probably produce an ugly error.  Test and fix.
     return "Can't close($close_arg) filehandle: '$!'";
 
 }

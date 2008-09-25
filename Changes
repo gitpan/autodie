@@ -1,6 +1,53 @@
 Revision history for autodie
 
-1.993  (Devel)
+1.994 Thu Sep 25 16:18:56 AUSEST 2008
+
+        * BUGFIX: flock(), ioctl() and truncate() are now part of
+          the :file tag.
+
+        * BUGFIX: link(), mkdir(), rmdir(), symlink() and umask()
+          are now part of the :filesys tag.
+
+        * BUGFIX: The new :msg tag contains msgctl(), msgget(), msgrcv(),
+          and msgsnd().
+
+        * BUGFIX: The new :semaphore tag contains semctl(), semget()
+          and semop().
+
+        * BUGFIX: The new :shm tag contains shmget(), shmread() and
+          shmctl().
+
+        * BUGFIX: The new :ipc tag contains :msg, :semaphore, :shm and pipe().
+
+        * BUGFIX: The read(), seek(), sysread(), syswrite() and sysseek()
+          methods have been added to :io.
+
+        * BUGFIX: autodie produces more detailed messages on internal
+          faults, and is more aggressive about stopping code compilation.
+
+        * FEATURE: flock will not die on failure when called
+          with the LOCK_NB option and would return false
+          due to an EWOULDBLOCK.  See function specific notes
+          in autodie documentation for more details.
+
+        * FEATURE: Stringified exceptions from flock() are significantly
+          nicer to read.
+
+        * FEATURE: use autodie qw(:1.994) can be used to specify the
+          :default tag from a particular version.
+
+        * DOCUMENTATION: flock() is documented as being in the :file tag.
+
+        * DOCUMENTATION: Added function-specific notes in autodie.pm
+
+        * TEST: New tests for rmdir(), mkdir(), and unlink(), thanks
+          to Jacinta Richardson.
+
+        * TEST: Added author-only perlcritic tests.
+
+        * META: META.yml has more correct author information.
+
+1.993 Sun Sep 14 11:15:36 AUSEST 2008
 
         * DOCUMENTATION: The :dbm tag is now correctly documented
           in autodie/CATEGORIES.  Thanks to Darren Duncan for spotting

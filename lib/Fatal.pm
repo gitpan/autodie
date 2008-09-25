@@ -31,19 +31,35 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '1.993';
+our $VERSION = '1.994';
 
 our $Debug ||= 0;
+
+# EWOULDBLOCK values for systems that don't supply their own.
+# Even though this is defined with our, that's to help our
+# test code.  Please don't rely upon this variable existing in
+# the future.
+
+our %_EWOULDBLOCK = (
+    MSWin32 => 33,
+);
 
 # We have some tags that can be passed in for use with import.
 # These are all assumed to be CORE::
 
 my %TAGS = (
-    ':io'      => [qw(:dbm :file :filesys :socket)],
+    ':io'      => [qw(:dbm :file :filesys :ipc :socket
+                       read seek sysread syswrite sysseek )],
     ':dbm'     => [qw(dbmopen dbmclose)],
-    ':file'    => [qw(open close sysopen fcntl fileno binmode)],
-    ':filesys' => [qw(opendir closedir chdir unlink rename)],
+    ':file'    => [qw(open close flock sysopen fcntl fileno binmode
+                     ioctl truncate)],
+    ':filesys' => [qw(opendir closedir chdir link unlink rename mkdir
+                      symlink rmdir readlink umask)],
+    ':ipc'     => [qw(:msg :semaphore :shm pipe)],
+    ':msg'     => [qw(msgctl msgget msgrcv msgsnd)],
     ':threads' => [qw(fork)],
+    ':semaphore'=>[qw(semctl semget semop)],
+    ':shm'     => [qw(shmctl shmget shmread)],
     ':system'  => [qw(system exec)],
 
     # Can we use qw(getpeername getsockname)? What do they do on failure?
@@ -59,6 +75,11 @@ my %TAGS = (
     # system() to be autodying by default.
 
     ':default' => [qw(:io :threads)],
+
+    # Version specific tags.  These allow someone to specify
+    # use autodie qw(:1.994) and know exactly what they'll get.
+
+    ':1.994' => [qw(:default)],
 );
 
 $TAGS{':all'}  = [ keys %TAGS ];
@@ -77,6 +98,12 @@ my %Use_defined_or;
     CORE::send
     CORE::open
     CORE::fileno
+    CORE::read
+    CORE::readlink
+    CORE::sysread
+    CORE::syswrite
+    CORE::sysseek
+    CORE::umask
 )} = ();
 
 # Cached_fatalised_sub caches the various versions of our
@@ -261,12 +288,12 @@ sub _install_subs {
 
         # Copy symbols across to temp area.
 
-        no strict 'refs';
+        no strict 'refs';   ## no critic
 
         local *__tmp = *{ $full_path };
 
         # Nuke the old glob.
-        { no strict; delete $pkg_sym->{$sub_name}; }
+        { no strict; delete $pkg_sym->{$sub_name}; }    ## no critic
 
         # Copy innocent bystanders back.
 
@@ -279,7 +306,7 @@ sub _install_subs {
 
         if ($sub_ref) {
 
-            no strict;
+            no strict;  ## no critic
             *{ $pkg_sym . $sub_name } = $sub_ref;
         }
     }
@@ -539,7 +566,6 @@ sub one_invocation {
 
     }
 
-
     # Should we be testing to see if our result is defined, or
     # just true?
     my $use_defined_or = exists ( $Use_defined_or{$call} );
@@ -553,6 +579,47 @@ sub one_invocation {
             pragma => q{$class}, errno => \$!,
         )
     };
+
+    if ($call eq 'CORE::flock') {
+
+        # flock needs special treatment.  When it fails with
+        # LOCK_UN and EWOULDBLOCK, then it's not really fatal, it just
+        # means we couldn't get the lock right now.
+
+        require POSIX;      # For POSIX::EWOULDBLOCK
+
+        local $@;   # Don't blat anyone else's $@.
+
+        # Ensure that our vendor supports EWOULDBLOCK.  If they
+        # don't (eg, Windows), then we use known values for its
+        # equivalent on other systems.
+
+        my $EWOULDBLOCK = eval { POSIX::EWOULDBLOCK(); }
+                          || $_EWOULDBLOCK{$^O}
+                          || _autocroak("Internal error - can't overload flock - EWOULDBLOCK not defined on this system.");
+
+        require Fcntl;      # For Fcntl::LOCK_NB
+
+        return qq{
+
+            # Try to flock.  If successful, return it immediately.
+
+            my \$retval = $call(@argv);
+            return \$retval if \$retval;
+
+            # If we failed, but we're using LOCK_NB and
+            # returned EWOULDBLOCK, it's not a real error.
+
+            if (\$_[1] & Fcntl::LOCK_NB() and \$! == $EWOULDBLOCK ) {
+                return \$retval;
+            }
+
+            # Otherwise, we failed.  Die noisily.
+
+            $die;
+
+        };
+    }
 
     # AFAIK everything that can be given an unopned filehandle
     # will fail if it tries to use it, so we don't really need
@@ -751,9 +818,19 @@ sub _make_fatal {
 
     {
         local $@;
-        no strict 'refs'; # to avoid: Can't use string (...) as a symbol ref ...
-        $code = eval("package $pkg; use Carp; $code");
-        Carp::confess("$@") if $@;
+        no strict 'refs'; ## no critic # to avoid: Can't use string (...) as a symbol ref ...
+        $code = eval("package $pkg; use Carp; $code");  ## no critic
+        if (not $code) {
+
+            # For some reason, using a die, croak, or confess in here
+            # results in the error being completely surpressed. As such,
+            # we need to do our own reporting.
+            #
+            # TODO: Fix the above.
+
+            _autocroak("Internal error in autodie/Fatal processing $true_name: $@");
+
+        }
     }
 
     # Now we need to wrap our fatalised sub inside an itty bitty
@@ -811,7 +888,7 @@ sub _make_fatal {
 
         local $@;
 
-        $leak_guard = eval $leak_guard;
+        $leak_guard = eval $leak_guard;  ## no critic
 
         die "Internal error in $class: Leak-guard installation failure: $@" if $@;
     }
@@ -829,6 +906,18 @@ sub throw {
 
     require autodie::exception;
     return autodie::exception->new(@args);
+}
+
+# For some reason, dying while replacing our subs doesn't
+# kill our calling program.  It simply stops the loading of
+# autodie and keeps going with everything else.  The _autocroak
+# sub allows us to die with a vegence.  It should *only* ever be
+# used for serious internal errors, since the results of it can't
+# be captured.
+
+sub _autocroak {
+    warn Carp::longmess(@_);
+    exit(255);  # Ugh!
 }
 
 package autodie::Scope::Guard;

@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = "1.993";
+    $VERSION = "1.994";
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -172,6 +172,11 @@ The categories are currently:
     :all
         :default
             :io
+                read
+                seek
+                sysread
+                sysseek
+                syswrite
                 :dbm
                     dbmclose
                     dbmopen
@@ -180,14 +185,37 @@ The categories are currently:
                     close
                     fcntl
                     fileno
+                    flock
+                    ioctl
                     open
                     sysopen
+                    truncate
                 :filesys
                     chdir
                     closedir
                     opendir
+                    link
+                    mkdir
+                    readlink
                     rename
+                    rmdir
+                    symlink
                     unlink
+                :ipc
+                    pipe
+                    :msg
+                        msgctl
+                        msgget
+                        msgrcv
+                        msgsnd
+                    :semaphore
+                        semctl
+                        semget
+                        semop
+                    :shm
+                        shmctl
+                        shmget
+                        shmread
                 :socket
                     accept
                     bind
@@ -206,14 +234,50 @@ The categories are currently:
             exec
 
 
+Note that while the above category system is presently a strict
+hierarchy, this should not be assumed.
+
 A plain C<use autodie> implies C<use autodie qw(:default)>.  Note that
 C<system> and C<exec> are not enabled by default.  C<system> requires
 the optional L<IPC::System::Simple> module to be installed, and enabling
 C<system> or C<exec> will invalidate their exotic forms.  See L</BUGS>
 below for more details.
 
-Note that while the above category system is presently a strict
-hierarchy, this should not be assumed.
+The syntax:
+
+    use autodie qw(:1.994);
+
+allows the C<:default> list from a particular version to be used.  This
+provides the convenience of using the default methods, but the surity
+that no behavorial changes will occur if the C<autodie> module is
+upgraded.
+
+=head1 FUNCTION SPECIFIC NOTES
+
+=head2 flock
+
+It is not considered an error for C<flock> to return false if it fails
+to an C<EWOULDBLOCK> (or equivalent) condition.  This means one can
+still use the common convention of testing the return value of
+C<flock> when called with the C<LOCK_NB> option:
+
+    use autodie;
+
+    if ( flock($fh, LOCK_EX | LOCK_NB) ) {
+        # We have a lock
+    }
+
+Autodying C<flock> will generate an exception if C<flock> returns
+false with any other error.
+
+=head2 system/exec
+
+Applying C<autodie> to C<system> or C<exec> causes the exotic
+forms C<system { $cmd } @args > or C<exec { $cmd } @args>
+to be considered a syntax error until the end of the lexical scope.
+If you really need to use the exotic form, you can call C<CORE::system>
+or C<CORE::exec> instead, or use C<no autodie qw(system exec)> before
+calling the exotic form.
 
 =head1 GOTCHAS
 
@@ -238,13 +302,6 @@ use or C<no autodie qw(open)>.
 See also L<Fatal/DIAGNOSTICS>.
 
 =head1 BUGS
-
-Applying C<autodie> to C<system> or C<exec> causes the exotic
-forms C<system { $cmd } @args > or C<exec { $cmd } @args>
-to be considered a syntax error until the end of the lexical scope.
-If you really need to use the exotic form, you can call C<CORE::system>
-or C<CORE::exec> instead, or use C<no autodie qw(system exec)> before
-calling the exotic form.
 
 "Used only once" warnings can be generated when C<autodie> or C<Fatal>
 is used with package filehandles (eg, C<FILE>).  It's strongly recommended

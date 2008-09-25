@@ -1,7 +1,7 @@
 ---
 abstract: 'Replace functions with ones that succeed or die with lexical scope'
 author:
-  - 'Copyright 2008, Paul Fenwick <pjf@perltraining.com.au>'
+  - 'Paul Fenwick <pjf@cpan.org>'
 build_requires:
   Test::More: 0
 distribution_type: module
@@ -24,4 +24,4 @@ resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   license: http://dev.perl.org/licenses/
   repository: http://github.com/pfenwick/autodie/tree/master
-version: 1.993
+version: 1.994
