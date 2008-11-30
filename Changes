@@ -1,5 +1,25 @@
 Revision history for autodie
 
+1.995 Sun Nov 30 17:30:16 AUSEDT 2008
+
+        * FEATURE: Errors from 2-argument open now have more human
+          friendly error messages for reading, writing, and appending.
+
+        * FEATURE: autodie will never print unsightly references to
+          GLOB(0x...) structures in error messages; instead it uses
+          the placeholder '$fh'.
+
+        * BUILD: Bundled Module::AutoInstall makes it clear to users
+          they need to install IPC::System::Simple for autodying
+          system() support.
+
+        * TEST: truncate.t provides more diagnostics on failure.
+
+        * TEST: Tests for better formatted reports from connect().
+
+        * TEST: New 'open.t' contains specific tests for well-formatted
+          messages from open().
+
 1.994 Thu Sep 25 16:18:56 AUSEST 2008
 
         * BUGFIX: flock(), ioctl() and truncate() are now part of

@@ -31,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '1.994';
+our $VERSION = '1.995';
 
 our $Debug ||= 0;
 
@@ -376,6 +376,9 @@ sub unimport {
 }
 
 # TODO - This is rather terribly inefficient right now.
+
+# NB: Perl::Critic's dump-autodie-tag-contents depends upon this
+# continuing to work.
 
 {
     my %tag_cache;
