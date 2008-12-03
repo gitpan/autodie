@@ -31,7 +31,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '1.995';
+our $VERSION = '1.996';
 
 our $Debug ||= 0;
 
@@ -80,6 +80,9 @@ my %TAGS = (
     # use autodie qw(:1.994) and know exactly what they'll get.
 
     ':1.994' => [qw(:default)],
+    ':1.995' => [qw(:default)],
+    ':1.996' => [qw(:default)],
+
 );
 
 $TAGS{':all'}  = [ keys %TAGS ];
@@ -791,7 +794,7 @@ sub _make_fatal {
     # results code that's in the wrong package, and hence has
     # access to the wrong package filehandles.
 
-    if (my $subref = $Cached_fatalised_sub{$sub}{$void}{$lexical}) {
+    if (my $subref = $Cached_fatalised_sub{$class}{$sub}{$void}{$lexical}) {
         $class->_install_subs($pkg, { $name => $subref });
         return $sref;
     }
@@ -873,7 +876,7 @@ sub _make_fatal {
         # Warning: The following code may disturb some viewers.
 
         # TODO: It should be possible to combine this with
-        # write invocations.
+        # write_invocation().
 
         foreach my $proto (@protos) {
             local $" = ", ";    # So @args is formatted correctly.
@@ -898,17 +901,58 @@ sub _make_fatal {
 
     $class->_install_subs($pkg, { $name => $leak_guard || $code });
 
-    $Cached_fatalised_sub{$sub}{$void}{$lexical} = $leak_guard || $code;
+    $Cached_fatalised_sub{$class}{$sub}{$void}{$lexical} = $leak_guard || $code;
 
     return $sref;
 
 }
 
-sub throw {
-    my ($class, @args) = @_;
+# This subroutine exists primarily so that child classes can override
+# it to point to their own exception class.  Doing this is significantly
+# less complex than overriding throw()
 
-    require autodie::exception;
-    return autodie::exception->new(@args);
+sub exception_class { return "autodie::exception" };
+
+{
+    my %exception_class_for;
+    my %class_loaded;
+
+    sub throw {
+        my ($class, @args) = @_;
+
+        # Find our exception class if we need it.
+        my $exception_class = 
+             $exception_class_for{$class} ||= $class->exception_class;
+
+        if (not $class_loaded{$exception_class}) {
+            if ($exception_class =~ /[^\w:']/) {
+                confess "Bad exception class '$exception_class'.\nThe '$class->exception_class' method wants to use $exception_class\nfor exceptions, but it contains characters which are not word-characters or colons.";
+            }
+
+            # Alas, Perl does turn barewords into modules unless they're
+            # actually barewords.  As such, we're left doing a string eval
+            # to make sure we load our file correctly.
+
+            my $E;
+
+            {
+                local $@;   # We can't clobber $@, it's wrong!
+                eval "require $exception_class"; ## no critic
+                $E = $@;    # Save $E despite ending our local.
+            }
+
+            # We need quotes around $@ to make sure it's stringified
+            # while still in scope.  Without them, we run the risk of
+            # $@ having been cleared by us exiting the local() block.
+
+            confess "Failed to load '$exception_class'.\nThis may be a typo in the '$class->exception_class' method,\nor the '$exception_class' module may not exist.\n\n $E" if $E;
+
+            $class_loaded{$exception_class}++;
+            
+        }
+
+        return $exception_class->new(@args);
+    }
 }
 
 # For some reason, dying while replacing our subs doesn't

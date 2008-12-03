@@ -1,5 +1,23 @@
 Revision history for autodie
 
+1.996 Thu Dec  4 09:07:39 AUSEDT 2008
+        * FEATURE: Child classes can now provide an exception_class()
+          method that returns the desired exception class, rather
+          than over-riding the whole throw() method.  Existing classes
+          that over-ride throw() will still work as before.
+
+        * BUGFIX: Fixed a bug where multiple autodie-derived classes
+          would share the same subroutine cache.  This could result
+          in excptions from the wrong class being thrown.
+
+          This bug did not affect programs which used only autodie,
+          or a single autodie-derived class.
+
+        * BUGFIX: Missing 1.995 version tag added to export list.
+
+        * TEST: Make sure that we always have a working version tag for
+          our current version.
+
 1.995 Sun Nov 30 17:30:16 AUSEDT 2008
 
         * FEATURE: Errors from 2-argument open now have more human
