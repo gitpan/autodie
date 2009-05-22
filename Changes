@@ -1,5 +1,46 @@
 Revision history for autodie
 
+1.999_01 Fri May 22 16:08:31 AUSEST 2009
+
+        * FEATURE: autodie can now accept hints regarding how
+          user and module subroutines should be handled.  See
+          autodie::hints for more information.
+
+        * INTERFACE: The calls to the internal subroutines
+          one_invocation() and write_invocation() have changed.
+          An additional argument (the user subroutine reference) is
+          passed as the second-last argument.  This may break code
+          that previously tried to call these subroutines directly.
+
+        * BUGFIX: Calls to subroutines to File::Copy should now
+          correctly throw exceptions when called in a list context.
+
+        * BUGFIX: An internal error where autodie could potentially
+          fail to correctly report a dying function's name has been
+          fixed.
+
+        * INTERFACE: The internal interfaces for fill_protos(),
+          one_invocation(), write_invocation() are now once again
+          backward compatible with legacy versions of Fatal.  It is
+          still strongly recommended these interfaces are NOT called
+          directly.  The _make_fatal() subroutine is not backwards
+          compatible.
+
+        * TEST: Added internal-backcompat.t to test backwards
+          compatibility of internal interfaces.
+
+        * DOCUMENTATION: Expanded documentation regarding how
+          autodie changes calls to system(), and how this must be
+          explicitly enabled.
+
+        * BUILD: Upgraded to Module::Install 0.87
+
+        * BUGFIX: A situation where certain compile-time diagnostics
+          and errors from autodie would not be displayed has been
+          fixed.
+
+1.999 Sat Feb 28 18:36:55 AUSEDT 2009
+
         * BUGFIX: Autodie now correctly propagates into string evals
           under 5.10+.  Autodie completely fails to propagate into
           string evals under 5.8.  No fix for 5.8 is known.
