@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = '1.999_01';
+    $VERSION = '2.00';
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -250,7 +250,7 @@ The syntax:
     use autodie qw(:1.994);
 
 allows the C<:default> list from a particular version to be used.  This
-provides the convenience of using the default methods, but the surity
+provides the convenience of using the default methods, but the surety
 that no behavorial changes will occur if the C<autodie> module is
 upgraded.
 
@@ -332,7 +332,7 @@ The C<:void> option is supported in L<Fatal>, but not
 C<autodie>.  However you can explicitly disable autodie
 end the end of the current block with C<no autodie>.
 To disable autodie for only a single function (eg, open)
-use or C<no autodie qw(open)>.
+use C<no autodie qw(open)>.
 
 =item No user hints defined for %s
 
@@ -359,8 +359,11 @@ any version of Perl.
 When using C<autodie> or C<Fatal> with user subroutines, the
 declaration of those subroutines must appear before the first use of
 C<Fatal> or C<autodie>, or have been exported from a module.
-Attempting to ue C<Fatal> or C<autodie> on other user subroutines will
+Attempting to use C<Fatal> or C<autodie> on other user subroutines will
 result in a compile-time error.
+
+Due to a bug in Perl, C<autodie> may "lose" any format which has the
+same name as an autodying built-in or function.
 
 =head2 REPORTING BUGS
 
@@ -388,7 +391,7 @@ same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<Fatal>, L<autodie::exception>, L<IPC::System::Simple>
+L<Fatal>, L<autodie::exception>, L<autodie::hints>, L<IPC::System::Simple>
 
 I<Perl tips, autodie> at
 L<http://perltraining.com.au/tips/2008-08-20.html>

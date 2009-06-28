@@ -31,6 +31,7 @@ use constant ERROR_AUTODIE_CONFLICT => q{"no autodie '%s'" is not allowed while 
 
 use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no autodie '%s'" is in effect};
 
+use constant ERROR_58_HINTS => q{Non-subroutine %s hints for %s are not supported under Perl 5.8.x};
 
 # Older versions of IPC::System::Simple don't support all the
 # features we need.
@@ -38,7 +39,7 @@ use constant ERROR_FATAL_CONFLICT => q{"use Fatal '%s'" is not allowed while "no
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '1.999_01';
+our $VERSION = '2.00';
 
 our $Debug ||= 0;
 
@@ -70,7 +71,7 @@ my %TAGS = (
     ':system'  => [qw(system exec)],
 
     # Can we use qw(getpeername getsockname)? What do they do on failure?
-    # XXX - Can socket return false?
+    # TODO - Can socket return false?
     ':socket'  => [qw(accept bind connect getsockopt listen recv send
                    setsockopt shutdown socketpair)],
 
@@ -93,6 +94,7 @@ my %TAGS = (
     ':1.998' => [qw(:default)],
     ':1.999' => [qw(:default)],
     ':1.999_01' => [qw(:default)],
+    ':2.00'  => [qw(:default)],
 
 );
 
@@ -333,9 +335,12 @@ sub _install_subs {
         # Nuke the old glob.
         { no strict; delete $pkg_sym->{$sub_name}; }    ## no critic
 
-        # Copy innocent bystanders back.
+        # Copy innocent bystanders back.  Note that we lose
+        # formats; it seems that Perl versions up to 5.10.0
+        # have a bug which causes copying formats to end up in
+        # the scalar slot.  Thanks to Ben Morrow for spotting this.
 
-        foreach my $slot (qw( SCALAR ARRAY HASH IO FORMAT ) ) {
+        foreach my $slot (qw( SCALAR ARRAY HASH IO ) ) {
             next unless defined *__tmp{ $slot };
             *{ $full_path } = *__tmp{ $slot };
         }
@@ -659,7 +664,7 @@ sub _one_invocation {
 
             if (\$E) {
 
-                # XXX - TODO - This can't be overridden in child
+                # TODO - This can't be overridden in child
                 # classes!
 
                 die autodie::exception::system->new(
@@ -754,8 +759,7 @@ sub _one_invocation {
         };
     }
     elsif ( $hints ) {
-        # XXX - Turn into a proper diagnostic.
-        croak "Non-subroutine list hints for $sub are not supported under Perl 5.8.x";
+        croak sprintf(ERROR_58_HINTS, 'list', $sub);
     }
     else {
         $code .= qq{
@@ -802,8 +806,7 @@ sub _one_invocation {
         };
     }
     elsif ( $hints ) {
-        # XXX - Turn into a proper diagnostic.
-        croak "Non-subroutine list hints for $sub are not supported under Perl 5.8.x";
+        croak sprintf(ERROR_58_HINTS, 'scalar', $sub);
     }
 
     return $code .
@@ -1258,7 +1261,7 @@ values are ignored.  For example
     use Fatal qw/:void open close/;
 
     # properly checked, so no exception raised on error
-    if (not open(my $fh, '<' '/bogotic') {
+    if (not open(my $fh, '<', '/bogotic') {
         warn "Can't open /bogotic: $!";
     }
 

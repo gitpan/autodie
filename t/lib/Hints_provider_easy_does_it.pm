@@ -1,17 +1,11 @@
-package Hints_provider;
+package Hints_provider_easy_does_it;
 use strict;
 use warnings;
 use base qw(Exporter);
 
 our @EXPORT_OK = qw(always_fail always_pass no_hints);
 
-sub DOES {
-    my ($class, $arg) = @_;
-
-    return 1 if ($arg eq 'autodie::hints::provider');
-    return $class->SUPER::DOES($arg) if $class->SUPER::can('DOES');
-    return $class->isa($arg);
-}
+our %DOES = ( 'autodie::hints::provider' => 1 );
 
 my $package = __PACKAGE__;
 

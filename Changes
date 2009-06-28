@@ -1,6 +1,6 @@
 Revision history for autodie
 
-1.999_01 Fri May 22 16:08:31 AUSEST 2009
+2.00  Mon Jun 29 01:24:49 AUSEST 2009
 
         * FEATURE: autodie can now accept hints regarding how
           user and module subroutines should be handled.  See
@@ -19,6 +19,10 @@ Revision history for autodie
           fail to correctly report a dying function's name has been
           fixed.
 
+        * BUGFIX: autodie will no longer clobber package scalars when
+          a format has the same name as an autodying function.
+          (Thanks to Ben Morrow)
+
         * INTERFACE: The internal interfaces for fill_protos(),
           one_invocation(), write_invocation() are now once again
           backward compatible with legacy versions of Fatal.  It is
@@ -33,7 +37,7 @@ Revision history for autodie
           autodie changes calls to system(), and how this must be
           explicitly enabled.
 
-        * BUILD: Upgraded to Module::Install 0.87
+        * BUILD: Upgraded to Module::Install 0.91
 
         * BUGFIX: A situation where certain compile-time diagnostics
           and errors from autodie would not be displayed has been

@@ -14,7 +14,7 @@ use overload
 
 use if ($] >= 5.010), overload => '~~'  => "matches";
 
-our $VERSION = '1.999_01';
+our $VERSION = '2.00';
 
 my $PACKAGE = __PACKAGE__;  # Useful to have a scalar for hash keys.
 
@@ -185,7 +185,7 @@ See L<autodie/CATEGORIES> for futher information.
     sub matches {
         my ($this, $that) = @_;
 
-        # XXX - Handle references
+        # TODO - Handle references
         croak "UNIMPLEMENTED" if ref $that;
 
         my $sub = $this->function;
