@@ -39,7 +39,7 @@ use constant ERROR_58_HINTS => q{Non-subroutine %s hints for %s are not supporte
 use constant MIN_IPC_SYS_SIMPLE_VER => 0.12;
 
 # All the Fatal/autodie modules share the same version number.
-our $VERSION = '2.00';
+our $VERSION = '2.01';
 
 our $Debug ||= 0;
 
@@ -95,6 +95,7 @@ my %TAGS = (
     ':1.999' => [qw(:default)],
     ':1.999_01' => [qw(:default)],
     ':2.00'  => [qw(:default)],
+    ':2.01'  => [qw(:default)],
 
 );
 
@@ -734,8 +735,11 @@ sub _one_invocation {
     # the 'unopened' warning class here.  Especially since they
     # then report the wrong line number.
 
+    # Other warnings are disabled because they produce excessive
+    # complaints from smart-match hints under 5.10.1.
+
     my $code = qq[
-        no warnings qw(unopened);
+        no warnings qw(unopened uninitialized numeric);
 
         if (wantarray) {
             my \@results = $call(@argv);
