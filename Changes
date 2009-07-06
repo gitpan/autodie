@@ -1,5 +1,22 @@
 Revision history for autodie
 
+2.06  Tue Jul  7 00:01:37 AUSEST 2009
+
+        * BUG: Explicitly documented that autodie does NOT play
+          nicely with string evals, especially under Perl 5.10.x.
+          Please avoid using string evals while autodie is in scope.
+
+        * TEST: Check for autodie leaking out of scope in the
+          presence of string evals.  (string-eval-leak.t)
+          Thanks to Florian Ragwitz and Vincent Pit for identifying
+          this.
+
+        * BUGFIX: autodie once again correctly works when used
+          inside a string eval.  (This was accidently broken
+          somewhere around 1.997-1.998).
+
+2.05  Sat Jul  4 16:33:01 AUSEST 2009
+
         * BUGFIX: format_default() in autodie::exception no longer
           returns a string with file and line attached.  This would
           cause the file and line information to appear twice when
