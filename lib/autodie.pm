@@ -8,7 +8,7 @@ our @ISA = qw(Fatal);
 our $VERSION;
 
 BEGIN {
-    $VERSION = '2.06';
+    $VERSION = '2.06_01';
 }
 
 use constant ERROR_WRONG_FATAL => q{
@@ -372,9 +372,6 @@ I<None of these bugs exist when using block eval>.
 Under Perl 5.8 only, C<autodie> I<does not> propagate into string C<eval>
 statements, although it can be explicitly enabled inside a string
 C<eval>.
-
-Under Perl 5.10 only, C<autodie> I<does not> operate correctly when
-used inside a string C<eval>.
 
 Under Perl 5.10 only, using a string eval when C<autodie> is in
 effect can cause the autodie behaviour to leak into the surrounding

@@ -27,4 +27,4 @@ resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   license: http://dev.perl.org/licenses/
   repository: http://github.com/pfenwick/autodie/tree/master
-version: 2.06
+version: 2.06_01
