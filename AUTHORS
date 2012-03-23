@@ -95,6 +95,7 @@ Michael Schwern
         - Finding a more-than-a-decade old bug in Fatal that caused
           it to leak carp functions.
         - Improvements to generated error messages.
+        - Safer loading of exception classes.
 
 David Taylor
         - Documentation fixes.
@@ -115,3 +116,9 @@ Jerry D. Hedden
 
 Curtis Jewell
         - Improvements to File::Copy tests under Windows.
+
+Olivier Mengué
+        - Compatibility fixes with Carp.
+
+Todd Rinaldo
+        - Avoided possible test failures when STDIN was a socket.
