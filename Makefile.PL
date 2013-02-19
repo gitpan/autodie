@@ -1,27 +1,72 @@
-#!/usr/bin/perl -w
+
 use strict;
-use inc::Module::Install;
+use warnings;
 
-name(		'autodie');
+use 5.008;
 
-all_from(	'lib/autodie.pm');
+use ExtUtils::MakeMaker 6.30;
 
-test_requires(	'Test::More');
-author(         'Paul Fenwick <pjf@cpan.org>');
 
-requires(	'perl' => '5.8.0');
-recommends(     'IPC::System::Simple' => '0.12'); # For autodying system()
 
-feature(        'Support for autodying system()',
-                -default => 1,
-                'IPC::System::Simple' => '0.12'
+my %WriteMakefileArgs = (
+  "ABSTRACT" => "Replace functions with ones that succeed or die with lexical scope",
+  "AUTHOR" => "Paul Fenwick <pjf\@cpan.org>",
+  "BUILD_REQUIRES" => {
+    "File::Copy" => 0,
+    "File::Spec" => 0,
+    "File::Temp" => 0,
+    "FindBin" => 0,
+    "IO::Handle" => 0,
+    "Socket" => 0,
+    "Test::More" => 0,
+    "open" => 0
+  },
+  "CONFIGURE_REQUIRES" => {
+    "ExtUtils::MakeMaker" => "6.30"
+  },
+  "DISTNAME" => "autodie",
+  "EXE_FILES" => [],
+  "LICENSE" => "perl",
+  "NAME" => "autodie",
+  "PREREQ_PM" => {
+    "B" => 0,
+    "Carp" => 0,
+    "Config" => 0,
+    "Exporter" => 0,
+    "Fcntl" => 0,
+    "POSIX" => 0,
+    "Tie::RefHash" => 0,
+    "base" => 0,
+    "constant" => 0,
+    "if" => 0,
+    "overload" => 0,
+    "strict" => 0,
+    "warnings" => 0
+  },
+  "VERSION" => "2.13_01",
+  "test" => {
+    "TESTS" => "t/*.t"
+  }
 );
 
-resources(      repository => 'http://github.com/pfenwick/autodie/tree/master');
-resources(      bugtracker => 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie');
-resources(      license    => 'http://dev.perl.org/licenses/');
-resources(	Blog       => 'http://pjf.id.au/blog/toc.html?tag=autodie');
 
-installdirs(    'perl');    # This overwrites a core module!
+unless ( eval { ExtUtils::MakeMaker->VERSION(6.56) } ) {
+  my $br = delete $WriteMakefileArgs{BUILD_REQUIRES};
+  my $pp = $WriteMakefileArgs{PREREQ_PM};
+  for my $mod ( keys %$br ) {
+    if ( exists $pp->{$mod} ) {
+      $pp->{$mod} = $br->{$mod} if $br->{$mod} > $pp->{$mod};
+    }
+    else {
+      $pp->{$mod} = $br->{$mod};
+    }
+  }
+}
 
-WriteAll();
+delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.52) };
+
+WriteMakefile(%WriteMakefileArgs);
+
+
+

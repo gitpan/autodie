@@ -1,5 +1,24 @@
 Revision history for autodie
 
+2.13_01   2013-02-20 03:10:46 Australia/Melbourne
+
+        * BUGFIX: Fixed bug whereby chmod, chown, kill, unlink and
+          utime could not throw an exception, even when they didn't
+          change all their files, or killed all their processes.
+
+        * BUGFIX: Added support for 'chown', that was previously
+          overlooked. Mad props to RsrchBoy for spotting this.
+          (GH Pull #13)
+
+        * BUGFIX: Removed executable bits from some bundled text files.
+
+        * BUILD: We now use dzil to manage autodie.
+
+        * TEST: Author tests now look for the AUTHOR_TESTING env
+          variable (for dzil compliance).
+
+        * TEST: Better testing for chown, chmod, and unlink.
+
 2.13  Thu Nov  8 14:22:03 EST 2012
         * TEST: Deterministic tests in hints_pod_examples.t .
           (RT #80412, thanks to demerphq)
