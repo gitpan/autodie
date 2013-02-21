@@ -19,7 +19,8 @@ my %WriteMakefileArgs = (
     "IO::Handle" => 0,
     "Socket" => 0,
     "Test::More" => 0,
-    "open" => 0
+    "open" => 0,
+    "parent" => 0
   },
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30"
@@ -43,7 +44,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "2.13_02",
+  "VERSION" => "2.13_03",
   "test" => {
     "TESTS" => "t/*.t"
   }

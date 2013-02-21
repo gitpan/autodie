@@ -13,10 +13,12 @@ lib/autodie.pm
 lib/autodie/exception.pm
 lib/autodie/exception/system.pm
 lib/autodie/hints.pm
+lib/autodie/skip.pm
 t/00-load.t
 t/Fatal.t
 t/author-critic.t
 t/autodie.t
+t/autodie_skippy.pm
 t/autodie_test_module.pm
 t/backcompat.t
 t/basic_exceptions.t
@@ -77,6 +79,7 @@ t/release-pod-coverage.t
 t/release-pod-syntax.t
 t/repeat.t
 t/scope_leak.t
+t/skip.t
 t/socket.t
 t/string-eval-basic.t
 t/string-eval-leak.t
