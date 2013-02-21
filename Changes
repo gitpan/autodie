@@ -1,5 +1,11 @@
 Revision history for autodie
 
+2.13_02   2013-02-21 22:33:55 Australia/Melbourne
+
+        * TEST: chown() tests are skipped on Win32, as chown on Windows
+          platforms seems to always say it was successful. (Help in
+          testing this would be appreciated.)
+
 2.13_01   2013-02-20 03:10:46 Australia/Melbourne
 
         * BUGFIX: Fixed bug whereby chmod, chown, kill, unlink and
@@ -13,6 +19,10 @@ Revision history for autodie
         * BUGFIX: Removed executable bits from some bundled text files.
 
         * BUILD: We now use dzil to manage autodie.
+
+        * BUILD: Only Perl 5.8.4 and above is supported by autodie.
+          Please upgrade your Perl distro if you're using 5.8.3 or
+          below.
 
         * TEST: Author tests now look for the AUTHOR_TESTING env
           variable (for dzil compliance).

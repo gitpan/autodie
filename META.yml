@@ -36,10 +36,10 @@ requires:
   constant: 0
   if: 0
   overload: 0
-  perl: 5.008
+  perl: 5.00804
   strict: 0
   warnings: 0
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   repository: git://github.com/pfenwick/autodie
-version: 2.13_01
+version: 2.13_02

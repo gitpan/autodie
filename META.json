@@ -44,7 +44,7 @@
             "constant" : "0",
             "if" : "0",
             "overload" : "0",
-            "perl" : "5.008",
+            "perl" : "5.00804",
             "strict" : "0",
             "warnings" : "0"
          }
@@ -52,6 +52,8 @@
       "test" : {
          "recommends" : {
             "BSD::Resource" : "0",
+            "Test::Kwalitee" : "0",
+            "Test::Perl::Critic" : "0",
             "perl" : "5.010"
          },
          "requires" : {
@@ -77,6 +79,6 @@
          "web" : "https://github.com/pfenwick/autodie"
       }
    },
-   "version" : "2.13_01"
+   "version" : "2.13_02"
 }
 
