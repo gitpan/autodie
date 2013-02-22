@@ -64,8 +64,7 @@
             "IO::Handle" : "0",
             "Socket" : "0",
             "Test::More" : "0",
-            "open" : "0",
-            "parent" : "0"
+            "open" : "0"
          }
       }
    },
@@ -80,6 +79,6 @@
          "web" : "https://github.com/pfenwick/autodie"
       }
    },
-   "version" : "2.15"
+   "version" : "2.16"
 }
 
