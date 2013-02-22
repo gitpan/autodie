@@ -43,4 +43,4 @@ requires:
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   repository: git://github.com/pfenwick/autodie
-version: 2.13_04
+version: 2.14
