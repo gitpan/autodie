@@ -1,27 +1,43 @@
 Revision history for autodie
 
-2.13_03   2013-02-21 23:22:39 Australia/Melbourne
+2.13_04   2013-02-22 15:15:11 Australia/Melbourne
 
         * FEATURE: Classes which claim they ->DOES('autodie::skip') are now
           skipped when generating exceptions.  This is mainly of use to
           utility classes. See `perldoc autodie::skip` for more details.
           (GH Issue #15)
 
-2.13_02   2013-02-21 22:33:55 Australia/Melbourne
+        * FEATURE / BUGFIX / INCOMPAT: 'chmod' is now in the ':filesys'
+          category.
 
-        * TEST: chown() tests are skipped on Win32, as chown on Windows
-          platforms seems to always say it was successful. (Help in
-          testing this would be appreciated.)
-
-2.13_01   2013-02-20 03:10:46 Australia/Melbourne
+        * BUGFIX: Added support for 'chown' and 'utime', that was
+          previously overlooked. Mad props to RsrchBoy for spotting this.
+          These are all in the ':filesys' category.
+          (GH Pull #13)
 
         * BUGFIX: Fixed bug whereby chmod, chown, kill, unlink and
           utime could not throw an exception, even when they didn't
           change all their files, or killed all their processes.
 
-        * BUGFIX: Added support for 'chown', that was previously
-          overlooked. Mad props to RsrchBoy for spotting this.
-          (GH Pull #13)
+        * BUGFIX: Added support for 'kill'. This is part of the
+          ':ipc' category.
+
+        * TEST: truncate.t is now skipped on systems that don't have a
+          working File::Temp.
+
+        * TEST: open.t has a few more tests for exotic modes.
+
+        * TEST: chown() tests are skipped on Win32, as chown on Windows
+          is a no-op. (Thanks to Mithaldu for spotting this!)
+
+        * TEST: Author tests now look for the AUTHOR_TESTING env
+          variable (for dzil compliance).
+
+        * TEST: Better testing for chown, chmod, and unlink.
+
+        * TEST: Better testing for ulink.
+
+        * TEST: kwalitee.t is now only run when $ENV{RELEASE_TESTING} is set.
 
         * BUGFIX: Removed executable bits from some bundled text files.
 
@@ -30,11 +46,6 @@ Revision history for autodie
         * BUILD: Only Perl 5.8.4 and above is supported by autodie.
           Please upgrade your Perl distro if you're using 5.8.3 or
           below.
-
-        * TEST: Author tests now look for the AUTHOR_TESTING env
-          variable (for dzil compliance).
-
-        * TEST: Better testing for chown, chmod, and unlink.
 
 2.13  Thu Nov  8 14:22:03 EST 2012
         * TEST: Deterministic tests in hints_pod_examples.t .

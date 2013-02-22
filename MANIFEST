@@ -50,6 +50,7 @@ t/hints_provider_easy_does_it.t
 t/hints_provider_isa.t
 t/internal-backcompat.t
 t/internal.t
+t/kill.t
 t/kwalitee.t
 t/lethal.t
 t/lex58.t
@@ -85,10 +86,12 @@ t/string-eval-basic.t
 t/string-eval-leak.t
 t/sysopen.t
 t/system.t
+t/touch_me
 t/truncate.t
 t/unlink.t
 t/user-context.t
 t/usersub.t
 t/utf8_open.t
+t/utime.t
 t/version.t
 t/version_tag.t
