@@ -2,7 +2,7 @@ package autodie::skip;
 use strict;
 use warnings;
 
-our $VERSION = '2.16'; # VERSION
+our $VERSION = '2.17'; # VERSION
 
 # This package exists purely so people can inherit from it,
 # which isn't at all how roles are supposed to work, but it's
@@ -10,7 +10,7 @@ our $VERSION = '2.16'; # VERSION
 
 if ($] < 5.010) {
     # Older Perls don't have a native ->DOES.  Let's provide a cheap
-    # immitation here.
+    # imitation here.
 
     *DOES = sub { return shift->isa(@_); };
 }

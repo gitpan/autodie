@@ -1,5 +1,18 @@
 Revision history for autodie
 
+2.17      2013-04-29 01:03:50 Australia/Melbourne
+
+        * DOCS: Spelling fixes thanks to dsteinbrunner! (RT #84897)
+
+        * DOCS: Fixed github links to point to 'pjf' rather than
+          'pfenwick' (GH #18, thanks to Lx!)
+
+        * INTERNAL: Silence warnings about experimental smart-match on
+          5.17.11+ (via Brian Fraser and p5p)
+
+        * TEST / BUILD: Generate .travis.yml files for CI testing via
+          dzil.
+
 2.16      2013-02-23 01:49:16 Australia/Melbourne
 
         * BUGFIX: Fix breakages under 5.8.x related to the new
