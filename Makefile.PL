@@ -26,6 +26,7 @@ my %WriteMakefileArgs = (
     "Exporter" => 0,
     "Fcntl" => 0,
     "POSIX" => 0,
+    "Scalar::Util" => 0,
     "Tie::RefHash" => 0,
     "base" => 0,
     "constant" => 0,
@@ -44,7 +45,7 @@ my %WriteMakefileArgs = (
     "Test::More" => 0,
     "open" => 0
   },
-  "VERSION" => "2.17",
+  "VERSION" => "2.17_01",
   "test" => {
     "TESTS" => "t/*.t"
   }

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 10;
 use constant NO_SUCH_FILE => 'THIS_FILE_HAD_BETTER_NOT_EXIST';
 
 eval {
@@ -71,6 +71,15 @@ SKIP: {
 
     isa_ok($@, 'autodie::exception', 'Our current version supports chown');
 }
+
+# The patch in RT 46984 would have utime being set even if an
+# older version of autodie semantics was requested. Let's see if
+# it's coming from outside the eval context below.
+
+eval { utime undef, undef, NO_SUCH_FILE; };
+is($@,"","utime is not autodying outside of any autodie context.");
+
+# Now do our regular versioning checks for utime.
 
 eval {
     use autodie qw(:2.13);

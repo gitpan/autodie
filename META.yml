@@ -31,6 +31,7 @@ requires:
   Exporter: 0
   Fcntl: 0
   POSIX: 0
+  Scalar::Util: 0
   Tie::RefHash: 0
   base: 0
   constant: 0
@@ -42,4 +43,4 @@ requires:
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   repository: git://github.com/pjf/autodie
-version: 2.17
+version: 2.17_01

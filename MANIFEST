@@ -7,6 +7,9 @@ META.json
 META.yml
 Makefile.PL
 README
+benchmarks/Fatal_Leaky_Benchmark.pm
+benchmarks/benchmark.pl
+benchmarks/leak.pl
 dist.ini
 lib/Fatal.pm
 lib/autodie.pm
@@ -88,6 +91,7 @@ t/sysopen.t
 t/system.t
 t/touch_me
 t/truncate.t
+t/truncate_me
 t/unlink.t
 t/user-context.t
 t/usersub.t
