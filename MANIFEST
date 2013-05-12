@@ -9,6 +9,7 @@ Makefile.PL
 README
 benchmarks/Fatal_Leaky_Benchmark.pm
 benchmarks/benchmark.pl
+benchmarks/call.pl
 benchmarks/leak.pl
 dist.ini
 lib/Fatal.pm

@@ -69,7 +69,7 @@
          }
       }
    },
-   "release_status" : "testing",
+   "release_status" : "stable",
    "resources" : {
       "bugtracker" : {
          "web" : "http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie"
@@ -80,6 +80,6 @@
          "web" : "https://github.com/pjf/autodie"
       }
    },
-   "version" : "2.17_01"
+   "version" : "2.18"
 }
 
