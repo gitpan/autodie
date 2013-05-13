@@ -34,6 +34,7 @@ t/chmod.t
 t/chown.t
 t/context.t
 t/context_lexical.t
+t/core-trampoline-slurp.t
 t/crickey.t
 t/critic.t
 t/dbmopen.t
