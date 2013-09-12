@@ -43,4 +43,4 @@ requires:
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=autodie
   repository: git://github.com/pjf/autodie
-version: 2.20
+version: 2.21
