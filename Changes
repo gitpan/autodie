@@ -1,5 +1,26 @@
 Revision history for autodie
 
+2.23      2014-01-27 13:50:55EST+1100 Australia/Melbourne
+
+        * TEST / BUGFIX: Improved testing support on Android
+          and Blackberry devices. (GH #44, thanks to
+          Hugmeir.)
+
+        * TEST / INTERNAL / TRAVIS: Various non-code
+          tweaks to make travis-ci more happy with testing
+          autodie.
+
+        * BUGFIX: autodie no longer weakens strict by allowing
+          undeclared variables with the same name as built-ins.
+          (RT #74246, thanks to Neils Thykier and Father
+          Chrysostomos.)
+
+        * BUGFIX: `use autodie qw( foo ! foo);` now correctly
+          insists that we have hints for foo. (Thanks Niels Thykier)
+
+        * INTERNAL: Improved benchmarking code, thanks to
+          Niels Thykier.
+
 2.22      2013-09-21 11:37:14 Asia/Tokyo
 
         * TEST / INTERNAL: Restore timestamps on touched testing
