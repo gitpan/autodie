@@ -4,7 +4,7 @@
       "Paul Fenwick <pjf@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.012, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Dist::Zilla version 5.013, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -35,7 +35,7 @@
          "requires" : {
             "B" : "0",
             "Carp" : "0",
-            "Exporter" : "0",
+            "Exporter" : "5.57",
             "Fcntl" : "0",
             "POSIX" : "0",
             "Scalar::Util" : "0",
@@ -81,6 +81,6 @@
          "web" : "https://github.com/pjf/autodie"
       }
    },
-   "version" : "2.23"
+   "version" : "2.24"
 }
 

@@ -1,5 +1,31 @@
 Revision history for autodie
 
+2.24      2014-03-30 19:30:10EST+1100 Australia/Melbourne
+
+        * FEATURE: Provide a stack backtrace when `Carp::Always` is enabled.
+                   Note that sometimes this is not as pretty as it could
+                   be, patches welcome.
+                   (Thanks to Niels Thykier, GH #35)
+
+        * BUGFIX: Fix situations where `no autodie` doesn't respect lexical
+                  scope. (Thanks to Niels Thykier, GH #41, RT #72053,
+                  RT #86396)
+
+        * INTERNAL: Remove now unused variables in code (Niels Thykier).
+
+        * DOCS: Make it extra-clear autodie doesn't check `print`.
+                (Dave Rolsky, GH #39)
+
+        * TEST: Removed obsolete boilerplate.t
+
+        * TEST / INTERNAL: Enabled travis-ci for Perl 5.8
+
+        * TEST: Stopped some Pod::Coverage tests failing under Perl 5.8
+
+        * BUILD: Better support for building in a read-only directory
+                 (courtesy Andrew Fresh, GH #46)
+
+
 2.23      2014-01-27 13:50:55EST+1100 Australia/Melbourne
 
         * TEST / BUGFIX: Improved testing support on Android
