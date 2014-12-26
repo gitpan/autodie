@@ -9,7 +9,6 @@ use autodie;
 
 use Fcntl;
 use File::Temp;
-
 use Test::More;
 
 if( $] < '5.01000' ) {
@@ -73,6 +72,15 @@ else {
         my @layers = PerlIO::get_layers($fh);
         ok( (grep { $_ eq 'utf8' } @layers), "open implicit read honors open pragma" ) or diag join ", ", @layers;
     }
+
+    # raw
+    {
+        open my $fh, ">:raw", $file;
+
+        my @layers = PerlIO::get_layers($fh);
+
+        ok( !(grep { $_ eq 'utf8' } @layers), 'open pragma is not used if raw is specified' ) or diag join ", ", @layers;
+    }
 }
 
 
@@ -96,7 +104,7 @@ else {
 
     # open for writing only
     {
-        sysopen my $fh, $file, O_CREAT|O_WRONLY;
+        sysopen my $fh, $file, O_CREAT|O_TRUNC|O_WRONLY;
 
         my @layers = PerlIO::get_layers($fh);
         ok( (grep { $_ eq 'utf8' } @layers), "open write honors open pragma" ) or diag join ", ", @layers;

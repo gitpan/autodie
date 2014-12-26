@@ -4,7 +4,7 @@
       "Paul Fenwick <pjf@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.013, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Dist::Zilla version 5.029, CPAN::Meta::Converter version 2.142690",
    "license" : [
       "perl_5"
    ],
@@ -16,7 +16,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "6.30"
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "develop" : {
@@ -40,10 +40,9 @@
             "POSIX" : "0",
             "Scalar::Util" : "0",
             "Tie::RefHash" : "0",
-            "base" : "0",
             "constant" : "0",
-            "if" : "0",
             "overload" : "0",
+            "parent" : "0",
             "perl" : "5.008004",
             "strict" : "0",
             "warnings" : "0"
@@ -52,6 +51,7 @@
       "test" : {
          "recommends" : {
             "BSD::Resource" : "0",
+            "Import::Into" : "0",
             "Pod::Coverage::TrustPod" : "0",
             "Test::Kwalitee" : "0",
             "Test::Perl::Critic" : "0",
@@ -63,8 +63,10 @@
             "File::Temp" : "0",
             "FindBin" : "0",
             "IO::Handle" : "0",
+            "Import::Into" : "0",
             "Socket" : "0",
             "Test::More" : "0",
+            "if" : "0",
             "lib" : "0",
             "open" : "0"
          }
@@ -81,6 +83,6 @@
          "web" : "https://github.com/pjf/autodie"
       }
    },
-   "version" : "2.25"
+   "version" : "2.26"
 }
 
